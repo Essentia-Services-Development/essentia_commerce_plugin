@@ -3,8 +3,12 @@
 //! Implements the decentralized e-commerce and affiliate platform logic,
 //! including the Genesis Business Directory Node.
 
+mod flexforge;
+
 use essentia_api::commerce::BusinessEntity;
 use essentia_error::Result;
+
+pub use flexforge::CommerceFlexForgeIntegration;
 
 /// Genesis Directory Node Implementation
 pub struct GenesisDirectory {
