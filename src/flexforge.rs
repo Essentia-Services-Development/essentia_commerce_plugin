@@ -2,8 +2,10 @@
 //!
 //! Provides commerce and marketplace configuration panel within FlexForge.
 
-use std::fmt::Debug;
-use std::sync::{Arc, Mutex};
+use std::{
+    fmt::Debug,
+    sync::{Arc, Mutex},
+};
 
 use essentia_traits::plugin_contracts::flexforge_integration::{
     ConfigField, ConfigSchema, FlexForgeIntegration, FlexForgePanelCategory, UiConfigurable,
@@ -13,22 +15,22 @@ use essentia_traits::plugin_contracts::flexforge_integration::{
 #[derive(Debug, Clone)]
 pub struct CommerceConfig {
     pub marketplace_enabled: bool,
-    pub affiliate_enabled: bool,
-    pub currency: String,
-    pub fee_percentage: f64,
-    pub genesis_sync: bool,
-    pub auto_verify: bool,
+    pub affiliate_enabled:   bool,
+    pub currency:            String,
+    pub fee_percentage:      f64,
+    pub genesis_sync:        bool,
+    pub auto_verify:         bool,
 }
 
 impl Default for CommerceConfig {
     fn default() -> Self {
         Self {
             marketplace_enabled: true,
-            affiliate_enabled: true,
-            currency: "ESS".to_string(),
-            fee_percentage: 2.5,
-            genesis_sync: true,
-            auto_verify: false,
+            affiliate_enabled:   true,
+            currency:            "ESS".to_string(),
+            fee_percentage:      2.5,
+            genesis_sync:        true,
+            auto_verify:         false,
         }
     }
 }
@@ -42,9 +44,7 @@ pub struct CommerceFlexForgeIntegration {
 impl CommerceFlexForgeIntegration {
     /// Create a new FlexForge integration instance
     pub fn new() -> Self {
-        Self {
-            config: Arc::new(Mutex::new(CommerceConfig::default())),
-        }
+        Self { config: Arc::new(Mutex::new(CommerceConfig::default())) }
     }
 
     fn config(&self) -> CommerceConfig {
@@ -85,19 +85,29 @@ impl FlexForgeIntegration for CommerceFlexForgeIntegration {
 impl UiConfigurable for CommerceFlexForgeIntegration {
     fn config_schema(&self) -> ConfigSchema {
         ConfigSchema::new()
-            .with_field(ConfigField::toggle("marketplace_enabled", "Marketplace", true))
-            .with_field(ConfigField::toggle("affiliate_enabled", "Affiliate System", true))
-            .with_field(ConfigField::select(
-                "currency",
-                "Currency",
-                vec![
-                    "ESS".to_string(),
-                    "BTC".to_string(),
-                    "ETH".to_string(),
-                    "USDT".to_string(),
-                ],
+            .with_field(ConfigField::toggle(
+                "marketplace_enabled",
+                "Marketplace",
+                true,
             ))
-            .with_field(ConfigField::number("fee_percentage", "Fee %", 2.5, 0.0, 10.0))
+            .with_field(ConfigField::toggle(
+                "affiliate_enabled",
+                "Affiliate System",
+                true,
+            ))
+            .with_field(ConfigField::select("currency", "Currency", vec![
+                "ESS".to_string(),
+                "BTC".to_string(),
+                "ETH".to_string(),
+                "USDT".to_string(),
+            ]))
+            .with_field(ConfigField::number(
+                "fee_percentage",
+                "Fee %",
+                2.5,
+                0.0,
+                10.0,
+            ))
             .with_field(ConfigField::toggle("genesis_sync", "Genesis Sync", true))
             .with_field(ConfigField::toggle("auto_verify", "Auto-Verify", false))
     }
@@ -110,7 +120,7 @@ impl UiConfigurable for CommerceFlexForgeIntegration {
             "currency" => config.currency = value.to_string(),
             "fee_percentage" => {
                 config.fee_percentage = value.parse().map_err(|_| "Invalid number")?;
-            }
+            },
             "genesis_sync" => config.genesis_sync = value == "true",
             "auto_verify" => config.auto_verify = value == "true",
             _ => return Err(format!("Unknown key: {}", key)),
@@ -129,10 +139,19 @@ impl UiConfigurable for CommerceFlexForgeIntegration {
     fn get_current_config(&self) -> Vec<(String, String)> {
         let config = self.config();
         vec![
-            ("marketplace_enabled".to_string(), config.marketplace_enabled.to_string()),
-            ("affiliate_enabled".to_string(), config.affiliate_enabled.to_string()),
+            (
+                "marketplace_enabled".to_string(),
+                config.marketplace_enabled.to_string(),
+            ),
+            (
+                "affiliate_enabled".to_string(),
+                config.affiliate_enabled.to_string(),
+            ),
             ("currency".to_string(), config.currency),
-            ("fee_percentage".to_string(), config.fee_percentage.to_string()),
+            (
+                "fee_percentage".to_string(),
+                config.fee_percentage.to_string(),
+            ),
             ("genesis_sync".to_string(), config.genesis_sync.to_string()),
             ("auto_verify".to_string(), config.auto_verify.to_string()),
         ]
