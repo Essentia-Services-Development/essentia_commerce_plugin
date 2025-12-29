@@ -3,43 +3,11 @@
 //! Implements the decentralized e-commerce and affiliate platform logic,
 //! including the Genesis Business Directory Node.
 
-mod flexforge;
+pub mod types;
+pub mod traits;
+pub mod errors;
+pub mod implementation;
 
-use essentia_api::commerce::BusinessEntity;
-use essentia_error::{EssentiaError, ValidationError};
-
-/// Result type for commerce operations
-pub type Result<T> = std::result::Result<T, EssentiaError>;
-
-pub use flexforge::CommerceFlexForgeIntegration;
-
-/// Genesis Directory Node Implementation
-pub struct GenesisDirectory {
-    /// List of registered entities
-    pub entities: Vec<BusinessEntity>,
-}
-
-impl GenesisDirectory {
-    /// Create a new Genesis Directory
-    pub fn new() -> Self {
-        Self { entities: Vec::new() }
-    }
-
-    /// Register a new business entity
-    pub fn register_business(&mut self, entity: BusinessEntity) -> Result<()> {
-        // Validate coherence
-        if entity.coherence_score < 0.99 {
-            return Err(EssentiaError::Validation(
-                ValidationError::MissingRequiredField("Coherence too low".to_string()),
-            ));
-        }
-        self.entities.push(entity);
-        Ok(())
-    }
-
-    /// Query the directory
-    pub fn query(&self, _query: &str) -> Vec<BusinessEntity> {
-        // Placeholder for SLM-based query
-        self.entities.clone()
-    }
-}
+// Re-exports for public API
+pub use types::*;
+pub use implementation::*;

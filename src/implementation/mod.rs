@@ -1,6 +1,4 @@
-//! FlexForge Universal Editor Integration for Commerce Plugin
-//!
-//! Provides commerce and marketplace configuration panel within FlexForge.
+//! Implementation details for the Commerce plugin
 
 use std::{
     fmt::Debug,
@@ -11,47 +9,23 @@ use essentia_traits::plugin_contracts::flexforge_integration::{
     ConfigField, ConfigSchema, FlexForgeIntegration, FlexForgePanelCategory, UiConfigurable,
 };
 
-/// Commerce configuration for FlexForge panel
-#[derive(Debug, Clone)]
-pub struct CommerceConfig {
-    pub marketplace_enabled: bool,
-    pub affiliate_enabled:   bool,
-    pub currency:            String,
-    pub fee_percentage:      f64,
-    pub genesis_sync:        bool,
-    pub auto_verify:         bool,
-}
-
-impl Default for CommerceConfig {
-    fn default() -> Self {
-        Self {
-            marketplace_enabled: true,
-            affiliate_enabled:   true,
-            currency:            "ESS".to_string(),
-            fee_percentage:      2.5,
-            genesis_sync:        true,
-            auto_verify:         false,
-        }
-    }
-}
-
 /// FlexForge integration for the Commerce plugin
 #[derive(Debug)]
 pub struct CommerceFlexForgeIntegration {
-    config: Arc<Mutex<CommerceConfig>>,
+    config: Arc<Mutex<super::types::CommerceConfig>>,
 }
 
 impl CommerceFlexForgeIntegration {
     /// Create a new FlexForge integration instance
     pub fn new() -> Self {
-        Self { config: Arc::new(Mutex::new(CommerceConfig::default())) }
+        Self { config: Arc::new(Mutex::new(super::types::CommerceConfig::default())) }
     }
 
-    fn config(&self) -> CommerceConfig {
+    fn config(&self) -> super::types::CommerceConfig {
         self.config.lock().map(|c| c.clone()).unwrap_or_default()
     }
 
-    fn set_config(&self, config: CommerceConfig) {
+    fn set_config(&self, config: super::types::CommerceConfig) {
         if let Ok(mut guard) = self.config.lock() {
             *guard = config;
         }
@@ -158,7 +132,7 @@ impl UiConfigurable for CommerceFlexForgeIntegration {
     }
 
     fn reset_to_defaults(&mut self) {
-        self.set_config(CommerceConfig::default());
+        self.set_config(super::types::CommerceConfig::default());
     }
 }
 
