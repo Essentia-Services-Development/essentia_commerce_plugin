@@ -6,8 +6,8 @@
 pub mod types;
 pub mod traits;
 pub mod errors;
-pub mod implementation;
+pub mod r#impl;
 
 // Re-exports for public API
 pub use types::*;
-pub use implementation::*;
+pub use r#impl::*;
