@@ -2,31 +2,30 @@
 
 use std::fmt::Debug;
 
+use essentia_api::r#impl::commerce::BusinessEntity;
+
 /// Genesis Directory Node for commerce operations
 #[derive(Debug, Clone)]
 pub struct GenesisDirectory {
-    pub entities: Vec<essentia_api::commerce::BusinessEntity>,
+    pub entities: Vec<BusinessEntity>,
 }
 
 impl GenesisDirectory {
     /// Create a new genesis directory
     pub fn new() -> Self {
-        Self {
-            entities: Vec::new(),
-        }
+        Self { entities: Vec::new() }
     }
 
     /// Register a business entity with coherence validation
     pub fn register_business(
-        &mut self,
-        entity: essentia_api::commerce::BusinessEntity,
+        &mut self, entity: BusinessEntity,
     ) -> Result<(), essentia_error::EssentiaError> {
         // Validate coherence score meets threshold
         if entity.coherence_score < 0.99 {
             return Err(essentia_error::EssentiaError::CoherenceViolation {
-                score: entity.coherence_score as f64,
+                score:     entity.coherence_score as f64,
                 threshold: 0.99,
-                concerns: vec!["Business entity coherence below required threshold".to_string()],
+                concerns:  vec!["Business entity coherence below required threshold".to_string()],
             });
         }
 
@@ -35,7 +34,7 @@ impl GenesisDirectory {
     }
 
     /// Query business entities
-    pub fn query(&self, filter: impl Fn(&essentia_api::commerce::BusinessEntity) -> bool) -> Vec<&essentia_api::commerce::BusinessEntity> {
+    pub fn query(&self, filter: impl Fn(&BusinessEntity) -> bool) -> Vec<&BusinessEntity> {
         self.entities.iter().filter(|e| filter(e)).collect()
     }
 }
