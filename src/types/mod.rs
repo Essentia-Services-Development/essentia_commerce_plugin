@@ -12,6 +12,7 @@ pub struct GenesisDirectory {
 
 impl GenesisDirectory {
     /// Create a new genesis directory
+    #[must_use] 
     pub fn new() -> Self {
         Self { entities: Vec::new() }
     }
@@ -45,7 +46,7 @@ impl Default for GenesisDirectory {
     }
 }
 
-/// Commerce configuration for FlexForge panel
+/// Commerce configuration for `FlexForge` panel
 #[derive(Debug, Clone)]
 pub struct CommerceConfig {
     pub marketplace_enabled: bool,

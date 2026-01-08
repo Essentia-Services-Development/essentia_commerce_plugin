@@ -9,14 +9,15 @@ use essentia_traits::plugin_contracts::flexforge_integration::{
     ConfigField, ConfigSchema, FlexForgeIntegration, FlexForgePanelCategory, UiConfigurable,
 };
 
-/// FlexForge integration for the Commerce plugin
+/// `FlexForge` integration for the Commerce plugin
 #[derive(Debug)]
 pub struct CommerceFlexForgeIntegration {
     config: Arc<Mutex<super::types::CommerceConfig>>,
 }
 
 impl CommerceFlexForgeIntegration {
-    /// Create a new FlexForge integration instance
+    /// Create a new `FlexForge` integration instance
+    #[must_use] 
     pub fn new() -> Self {
         Self { config: Arc::new(Mutex::new(super::types::CommerceConfig::default())) }
     }
