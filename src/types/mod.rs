@@ -7,17 +7,23 @@ use essentia_api::r#impl::commerce::BusinessEntity;
 /// Genesis Directory Node for commerce operations
 #[derive(Debug, Clone)]
 pub struct GenesisDirectory {
+    /// Registered business entities
     pub entities: Vec<BusinessEntity>,
 }
 
 impl GenesisDirectory {
     /// Create a new genesis directory
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self { entities: Vec::new() }
     }
 
     /// Register a business entity with coherence validation
+    ///
+    /// # Errors
+    ///
+    /// Returns `EssentiaError::CoherenceViolation` if the entity's coherence score
+    /// is below the required threshold of 0.99.
     pub fn register_business(
         &mut self, entity: BusinessEntity,
     ) -> Result<(), essentia_error::EssentiaError> {
@@ -49,11 +55,17 @@ impl Default for GenesisDirectory {
 /// Commerce configuration for `FlexForge` panel
 #[derive(Debug, Clone)]
 pub struct CommerceConfig {
+    /// Enable marketplace functionality
     pub marketplace_enabled: bool,
+    /// Enable affiliate program
     pub affiliate_enabled:   bool,
+    /// Default currency for transactions
     pub currency:            String,
+    /// Transaction fee percentage
     pub fee_percentage:      f64,
+    /// Enable genesis synchronization
     pub genesis_sync:        bool,
+    /// Enable automatic verification
     pub auto_verify:         bool,
 }
 
