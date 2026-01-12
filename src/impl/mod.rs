@@ -1,5 +1,10 @@
 //! Implementation details for the Commerce plugin
 
+pub mod product_catalog;
+pub mod cart_system;
+pub mod order_management;
+pub mod inventory_sync;
+
 use std::{
     fmt::Debug,
     sync::{Arc, Mutex},
@@ -17,7 +22,7 @@ pub struct CommerceFlexForgeIntegration {
 
 impl CommerceFlexForgeIntegration {
     /// Create a new `FlexForge` integration instance
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self { config: Arc::new(Mutex::new(super::types::CommerceConfig::default())) }
     }

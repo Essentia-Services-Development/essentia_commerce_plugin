@@ -7,6 +7,7 @@
 #![allow(clippy::uninlined_format_args)]
 #![allow(clippy::cast_lossless)]
 #![allow(clippy::struct_excessive_bools)]
+#![allow(clippy::missing_errors_doc)]
 
 pub mod errors;
 pub mod r#impl;
