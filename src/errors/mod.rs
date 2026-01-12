@@ -36,16 +36,16 @@ pub enum CommerceError {
         /// Product ID.
         product_id: String,
         /// Available quantity.
-        available: u32,
+        available:  u32,
         /// Requested quantity.
-        requested: u32,
+        requested:  u32,
     },
     /// Currency mismatch.
     CurrencyMismatch {
         /// Expected currency.
         expected: String,
         /// Received currency.
-        got: String,
+        got:      String,
     },
     /// Discount already applied.
     DiscountAlreadyApplied(String),
@@ -95,10 +95,10 @@ impl fmt::Display for CommerceError {
                     "Insufficient inventory for {}: available {}, requested {}",
                     product_id, available, requested
                 )
-            }
+            },
             Self::CurrencyMismatch { expected, got } => {
                 write!(f, "Currency mismatch: expected {}, got {}", expected, got)
-            }
+            },
             Self::DiscountAlreadyApplied(code) => write!(f, "Discount already applied: {}", code),
             Self::DiscountNotFound(code) => write!(f, "Discount not found: {}", code),
             Self::ShippingAddressRequired => write!(f, "Shipping address required"),
@@ -122,6 +122,92 @@ impl From<CommerceError> for essentia_api::PluginError {
         essentia_api::PluginError::ExecutionFailed(err.to_string())
     }
 }
+
+/// Marketplace-specific errors.
+#[derive(Debug, Clone)]
+pub enum MarketplaceError {
+    /// Listing not found
+    ListingNotFound,
+    /// Listing not active
+    ListingNotActive,
+    /// Seller not found
+    SellerNotFound,
+    /// Invalid listing data
+    InvalidListing,
+    /// Payment amount required
+    AmountRequired,
+    /// Payment amount below minimum
+    BelowMinimum,
+    /// Order not found
+    OrderNotFound,
+    /// Insufficient funds
+    InsufficientFunds,
+    /// Payment failed
+    PaymentFailed,
+    /// Escrow error
+    EscrowError(String),
+    /// Search error
+    SearchError(String),
+    /// Serialization error
+    SerializationError(String),
+    /// IO error
+    IoError(String),
+    /// Invalid access token
+    InvalidToken,
+    /// Token expired
+    TokenExpired,
+    /// Download limit reached
+    DownloadLimitReached,
+    /// No content providers available
+    NoProviders,
+    /// Content not found
+    ContentNotFound,
+    /// Insufficient funds for escrow
+    InsufficientFundsForEscrow,
+    /// Escrow already exists
+    EscrowExists,
+    /// Escrow not found
+    EscrowNotFound,
+    /// Invalid escrow state for operation
+    InvalidEscrowState,
+    /// Release conditions not met
+    ReleaseConditionsNotMet,
+}
+
+impl fmt::Display for MarketplaceError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::ListingNotFound => write!(f, "Listing not found"),
+            Self::ListingNotActive => write!(f, "Listing not active"),
+            Self::SellerNotFound => write!(f, "Seller not found"),
+            Self::InvalidListing => write!(f, "Invalid listing data"),
+            Self::AmountRequired => write!(f, "Payment amount required"),
+            Self::BelowMinimum => write!(f, "Payment amount below minimum"),
+            Self::OrderNotFound => write!(f, "Order not found"),
+            Self::InsufficientFunds => write!(f, "Insufficient funds"),
+            Self::PaymentFailed => write!(f, "Payment failed"),
+            Self::EscrowError(msg) => write!(f, "Escrow error: {}", msg),
+            Self::SearchError(msg) => write!(f, "Search error: {}", msg),
+            Self::SerializationError(msg) => write!(f, "Serialization error: {}", msg),
+            Self::IoError(msg) => write!(f, "IO error: {}", msg),
+            Self::InvalidToken => write!(f, "Invalid access token"),
+            Self::TokenExpired => write!(f, "Token expired"),
+            Self::DownloadLimitReached => write!(f, "Download limit reached"),
+            Self::NoProviders => write!(f, "No content providers available"),
+            Self::ContentNotFound => write!(f, "Content not found"),
+            Self::InsufficientFundsForEscrow => write!(f, "Insufficient funds for escrow"),
+            Self::EscrowExists => write!(f, "Escrow already exists"),
+            Self::EscrowNotFound => write!(f, "Escrow not found"),
+            Self::InvalidEscrowState => write!(f, "Invalid escrow state for operation"),
+            Self::ReleaseConditionsNotMet => write!(f, "Release conditions not met"),
+        }
+    }
+}
+
+impl std::error::Error for MarketplaceError {}
+
+/// Result type for marketplace operations.
+pub type MarketplaceResult<T> = Result<T, MarketplaceError>;
 
 /// Result type for commerce operations.
 pub type CommerceResult<T> = Result<T, CommerceError>;

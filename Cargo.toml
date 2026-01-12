@@ -19,6 +19,6 @@ essentia_core = { workspace = true }
 essentia_api = { workspace = true }
 essentia_traits = { workspace = true }
 essentia_error = { workspace = true }
+essentia_uuid = { workspace = true }
 [lints]
 workspace = true
-

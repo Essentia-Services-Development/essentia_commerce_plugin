@@ -8,12 +8,19 @@
 #![allow(clippy::cast_lossless)]
 #![allow(clippy::struct_excessive_bools)]
 #![allow(clippy::missing_errors_doc)]
+#![allow(clippy::must_use_candidate)]
+#![allow(missing_docs)]
+#![allow(clippy::doc_markdown)]
+#![allow(clippy::collapsible_if)]
+#![allow(clippy::missing_panics_doc)]
 
 pub mod errors;
 pub mod r#impl;
+pub mod marketplace;
 pub mod traits;
 pub mod types;
 
 // Re-exports for public API
 pub use r#impl::*;
+pub use marketplace::*;
 pub use types::*;
