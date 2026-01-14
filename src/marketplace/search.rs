@@ -49,10 +49,7 @@ impl SearchIndex {
 
         // Index tags
         for tag in &listing.tags {
-            self.tags
-                .entry(tag.clone())
-                .or_default()
-                .insert(listing_id.clone());
+            self.tags.entry(tag.clone()).or_default().insert(listing_id.clone());
         }
 
         // Index seller
@@ -69,10 +66,7 @@ impl SearchIndex {
 
         // Index price range (simplified bucketing)
         let price_bucket = self.get_price_bucket(listing);
-        self.price_ranges
-            .entry(price_bucket)
-            .or_default()
-            .insert(listing_id.clone());
+        self.price_ranges.entry(price_bucket).or_default().insert(listing_id.clone());
 
         Ok(())
     }
@@ -163,10 +157,7 @@ impl SearchIndex {
     fn index_full_text(&mut self, listing_id: &super::ListingId, text: &str) {
         let terms = self.tokenize(text);
         for term in terms {
-            self.full_text
-                .entry(term)
-                .or_default()
-                .insert(listing_id.clone());
+            self.full_text.entry(term).or_default().insert(listing_id.clone());
         }
     }
 

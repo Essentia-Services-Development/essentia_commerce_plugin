@@ -322,9 +322,18 @@ impl P2PCatalogSync {
 }
 
 impl Default for P2PCatalogSync {
-    #[allow(clippy::expect_used)]
     fn default() -> Self {
-        Self::new().expect("P2PCatalogSync::new should never fail")
+        Self {
+            local_catalog: HashMap::new(),
+            peer_catalogs: HashMap::new(),
+            sync_state:    SyncState {
+                last_full_sync: 0,
+                sync_watermark: 0,
+                active_syncs:   HashSet::new(),
+                stats:          SyncStats::default(),
+            },
+            pending_ops:   Vec::new(),
+        }
     }
 }
 

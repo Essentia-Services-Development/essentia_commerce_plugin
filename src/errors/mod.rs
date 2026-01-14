@@ -71,6 +71,16 @@ pub enum CommerceError {
     ValidationError(String),
     /// Internal error.
     InternalError(String),
+    /// Payment plugin not configured.
+    PaymentPluginNotConfigured,
+    /// Payment error.
+    PaymentError(String),
+    /// Payment failed.
+    PaymentFailed(String),
+    /// Blockchain plugin not configured.
+    BlockchainPluginNotConfigured,
+    /// Blockchain error.
+    BlockchainError(String),
 }
 
 impl fmt::Display for CommerceError {
@@ -111,6 +121,11 @@ impl fmt::Display for CommerceError {
             Self::InvalidTransferStatus => write!(f, "Invalid transfer status"),
             Self::ValidationError(msg) => write!(f, "Validation error: {}", msg),
             Self::InternalError(msg) => write!(f, "Internal error: {}", msg),
+            Self::PaymentPluginNotConfigured => write!(f, "Payment plugin not configured"),
+            Self::PaymentError(msg) => write!(f, "Payment error: {}", msg),
+            Self::PaymentFailed(msg) => write!(f, "Payment failed: {}", msg),
+            Self::BlockchainPluginNotConfigured => write!(f, "Blockchain plugin not configured"),
+            Self::BlockchainError(msg) => write!(f, "Blockchain error: {}", msg),
         }
     }
 }

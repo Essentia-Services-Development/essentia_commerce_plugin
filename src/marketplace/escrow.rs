@@ -2,6 +2,11 @@
 
 use std::collections::HashMap;
 
+// Blockchain plugin integration
+use essentia_blockchain_plugin::{
+    BlockchainPlugin, Transaction as BlockchainTransaction, TransactionStatus as BlockchainTxStatus,
+};
+
 use crate::errors::MarketplaceError;
 
 /// Escrow service result type
@@ -42,6 +47,12 @@ pub struct EscrowAccount {
     pub release_conditions: Vec<ReleaseCondition>,
     /// Current status
     pub status:             EscrowStatus,
+    /// Blockchain transaction ID for deposit
+    pub deposit_tx_id:      Option<[u8; 32]>,
+    /// Blockchain transaction ID for release
+    pub release_tx_id:      Option<[u8; 32]>,
+    /// Blockchain transaction ID for refund
+    pub refund_tx_id:       Option<[u8; 32]>,
     /// Created timestamp
     pub created_at:         u64,
     /// Last updated timestamp
@@ -83,15 +94,30 @@ pub enum EscrowStatus {
 /// Escrow manager service
 pub struct EscrowManager {
     /// Active escrow accounts
-    escrows:          HashMap<EscrowId, EscrowAccount>,
+    escrows:           HashMap<EscrowId, EscrowAccount>,
     /// Escrows by order ID
-    escrows_by_order: HashMap<super::orders::OrderId, EscrowId>,
+    escrows_by_order:  HashMap<super::orders::OrderId, EscrowId>,
+    /// Blockchain plugin for transaction settlement
+    blockchain_plugin: Option<BlockchainPlugin>,
 }
 
 impl EscrowManager {
     /// Create new escrow manager
     pub fn new() -> EscrowResult<Self> {
-        Ok(Self { escrows: HashMap::new(), escrows_by_order: HashMap::new() })
+        Ok(Self {
+            escrows:           HashMap::new(),
+            escrows_by_order:  HashMap::new(),
+            blockchain_plugin: None,
+        })
+    }
+
+    /// Create new escrow manager with blockchain plugin
+    pub fn with_blockchain_plugin(blockchain_plugin: BlockchainPlugin) -> EscrowResult<Self> {
+        Ok(Self {
+            escrows:           HashMap::new(),
+            escrows_by_order:  HashMap::new(),
+            blockchain_plugin: Some(blockchain_plugin),
+        })
     }
 
     /// Create escrow account for order
@@ -106,6 +132,31 @@ impl EscrowManager {
         let escrow_id = EscrowId::new();
         let now = current_timestamp();
 
+        // Create blockchain transaction for deposit if plugin available
+        let deposit_tx_id = if let Some(blockchain_plugin) = &self.blockchain_plugin {
+            let deposit_tx = BlockchainTransaction {
+                id: [0u8; 32],        // Will be set by plugin
+                sender: [0u8; 32],    // Buyer address - would need to be resolved
+                recipient: [0u8; 32], // Escrow contract address
+                amount,
+                fee: 1000, // Default fee
+                signature: Vec::new(),
+                status: BlockchainTxStatus::Pending,
+                timestamp: now,
+            };
+
+            let tx = blockchain_plugin.submit_transaction(deposit_tx).map_err(|e| {
+                MarketplaceError::EscrowError(format!(
+                    "Failed to submit deposit transaction: {:?}",
+                    e
+                ))
+            })?;
+
+            Some(tx.id)
+        } else {
+            None
+        };
+
         let escrow = EscrowAccount {
             id: escrow_id.clone(),
             order_id: order_id.clone(),
@@ -116,6 +167,9 @@ impl EscrowManager {
             refunded_amount: 0,
             release_conditions: conditions,
             status: EscrowStatus::Active,
+            deposit_tx_id,
+            release_tx_id: None,
+            refund_tx_id: None,
             created_at: now,
             updated_at: now,
         };
@@ -149,6 +203,30 @@ impl EscrowManager {
         escrow.released_amount += release_amount;
         escrow.updated_at = current_timestamp();
 
+        // Create blockchain transaction for release if plugin available
+        if let Some(blockchain_plugin) = &self.blockchain_plugin {
+            let now = current_timestamp();
+            let release_tx = BlockchainTransaction {
+                id:        [0u8; 32], // Will be set by plugin
+                sender:    [0u8; 32], // Escrow contract address
+                recipient: [0u8; 32], // Seller address - would need to be resolved
+                amount:    release_amount,
+                fee:       1000, // Default fee
+                signature: Vec::new(),
+                status:    BlockchainTxStatus::Pending,
+                timestamp: now,
+            };
+
+            let tx = blockchain_plugin.submit_transaction(release_tx).map_err(|e| {
+                MarketplaceError::EscrowError(format!(
+                    "Failed to submit release transaction: {:?}",
+                    e
+                ))
+            })?;
+
+            escrow.release_tx_id = Some(tx.id);
+        }
+
         // Update status
         if escrow.released_amount + escrow.refunded_amount >= escrow.total_amount {
             if escrow.released_amount > 0 && escrow.refunded_amount == 0 {
@@ -173,6 +251,30 @@ impl EscrowManager {
 
         escrow.refunded_amount += refund_amount;
         escrow.updated_at = current_timestamp();
+
+        // Create blockchain transaction for refund if plugin available
+        if let Some(blockchain_plugin) = &self.blockchain_plugin {
+            let now = current_timestamp();
+            let refund_tx = BlockchainTransaction {
+                id:        [0u8; 32], // Will be set by plugin
+                sender:    [0u8; 32], // Escrow contract address
+                recipient: [0u8; 32], // Buyer address - would need to be resolved
+                amount:    refund_amount,
+                fee:       1000, // Default fee
+                signature: Vec::new(),
+                status:    BlockchainTxStatus::Pending,
+                timestamp: now,
+            };
+
+            let tx = blockchain_plugin.submit_transaction(refund_tx).map_err(|e| {
+                MarketplaceError::EscrowError(format!(
+                    "Failed to submit refund transaction: {:?}",
+                    e
+                ))
+            })?;
+
+            escrow.refund_tx_id = Some(tx.id);
+        }
 
         // Update status
         if escrow.released_amount + escrow.refunded_amount >= escrow.total_amount {
@@ -231,7 +333,10 @@ impl EscrowManager {
             },
         }
 
-        let escrow = self.escrows.get_mut(escrow_id).expect("Escrow should exist as it was validated earlier");
+        // Update escrow status - we know it exists since we validated it above
+        let escrow = self.escrows.get_mut(escrow_id).ok_or_else(|| {
+            MarketplaceError::EscrowError("Escrow disappeared during resolution".to_string())
+        })?;
         escrow.status = EscrowStatus::Resolved;
         escrow.updated_at = current_timestamp();
 
@@ -283,9 +388,12 @@ impl EscrowManager {
 }
 
 impl Default for EscrowManager {
-    #[allow(clippy::expect_used)]
     fn default() -> Self {
-        Self::new().expect("EscrowManager::new should never fail")
+        Self {
+            escrows:           HashMap::new(),
+            escrows_by_order:  HashMap::new(),
+            blockchain_plugin: None,
+        }
     }
 }
 

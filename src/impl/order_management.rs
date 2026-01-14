@@ -11,6 +11,16 @@ use crate::errors::CommerceError;
 use crate::r#impl::product_catalog::{Price, ProductId, Currency};
 use crate::r#impl::cart_system::{Cart, CartItem, ShippingAddress, ShippingMethod, CartTotals};
 
+// Payment plugin integration
+use essentia_payment_plugin::{
+    PaymentPlugin, PaymentAmount, PaymentStatus as PluginPaymentStatus,
+};
+
+// Blockchain plugin integration (for transaction settlement)
+use essentia_blockchain_plugin::{
+    BlockchainPlugin, Transaction as BlockchainTransaction, TransactionStatus as BlockchainTxStatus,
+};
+
 // ============================================================================
 // CORE TYPES
 // ============================================================================
@@ -500,6 +510,10 @@ pub struct Order {
     pub currency: Currency,
     /// Payment transactions.
     pub transactions: Vec<PaymentTransaction>,
+    /// Payment invoice ID (from payment plugin).
+    pub payment_invoice_id: Option<String>,
+    /// Blockchain transaction ID (for settlement).
+    pub blockchain_tx_id: Option<[u8; 32]>,
     /// Shipments.
     pub shipments: Vec<Shipment>,
     /// Order notes.
@@ -623,6 +637,8 @@ impl Order {
             totals,
             currency: cart.currency.clone(),
             transactions: Vec::new(),
+            payment_invoice_id: None,
+            blockchain_tx_id: None,
             shipments: Vec::new(),
             notes: Vec::new(),
             history: Vec::new(),
@@ -806,6 +822,10 @@ pub struct OrderService {
     orders_by_customer: Arc<Mutex<HashMap<OrderCustomerId, Vec<OrderId>>>>,
     /// Order number counter.
     order_counter: Arc<Mutex<u64>>,
+    /// Payment plugin for processing payments.
+    payment_plugin: Option<PaymentPlugin>,
+    /// Blockchain plugin for transaction settlement.
+    blockchain_plugin: Option<BlockchainPlugin>,
 }
 
 impl OrderService {
@@ -816,6 +836,20 @@ impl OrderService {
             orders: Arc::new(Mutex::new(HashMap::new())),
             orders_by_customer: Arc::new(Mutex::new(HashMap::new())),
             order_counter: Arc::new(Mutex::new(1000)),
+            payment_plugin: None,
+            blockchain_plugin: None,
+        }
+    }
+
+    /// Creates a new order service with payment and blockchain plugins.
+    #[must_use]
+    pub fn with_plugins(payment_plugin: PaymentPlugin, blockchain_plugin: BlockchainPlugin) -> Self {
+        Self {
+            orders: Arc::new(Mutex::new(HashMap::new())),
+            orders_by_customer: Arc::new(Mutex::new(HashMap::new())),
+            order_counter: Arc::new(Mutex::new(1000)),
+            payment_plugin: Some(payment_plugin),
+            blockchain_plugin: Some(blockchain_plugin),
         }
     }
 
@@ -889,13 +923,97 @@ impl OrderService {
         Ok(())
     }
 
-    /// Updates order status.
-    pub fn update_order_status(
-        &self,
-        order_id: &OrderId,
-        status: OrderStatus,
-        user: Option<String>,
-    ) -> Result<(), CommerceError> {
+    /// Creates a payment invoice for an order.
+    pub fn create_payment_invoice(&self, order_id: &OrderId) -> Result<String, CommerceError> {
+        let mut orders = self.orders.lock().map_err(|_| CommerceError::LockError)?;
+        let order = orders.get_mut(order_id).ok_or_else(|| CommerceError::OrderNotFound(order_id.0.clone()))?;
+
+        let payment_plugin = self.payment_plugin.as_ref().ok_or(CommerceError::PaymentPluginNotConfigured)?;
+
+        // Create payment invoice
+        let amount = PaymentAmount::from_satoshis(order.totals.grand_total);
+        let description = format!("Order {} - {}", order.order_number, order.customer_email);
+
+        // Generate invoice through payment plugin
+        let invoice = payment_plugin.create_invoice(Some(amount.satoshis), description)
+            .map_err(|e| CommerceError::PaymentError(format!("Failed to generate invoice: {:?}", e)))?;
+
+        // Store invoice ID in order
+        order.payment_invoice_id = Some(invoice.encoded.clone());
+
+        Ok(invoice.encoded)
+    }
+
+    /// Processes a payment for an order.
+    pub fn process_payment(&self, order_id: &OrderId, payment_hash: [u8; 32]) -> Result<(), CommerceError> {
+        let mut orders = self.orders.lock().map_err(|_| CommerceError::LockError)?;
+        let order = orders.get_mut(order_id).ok_or_else(|| CommerceError::OrderNotFound(order_id.0.clone()))?;
+
+        let payment_plugin = self.payment_plugin.as_ref().ok_or(CommerceError::PaymentPluginNotConfigured)?;
+
+        // Check payment status
+        let status = payment_plugin.get_payment_status(&payment_hash)
+            .map_err(|e| CommerceError::PaymentError(format!("Failed to get payment status: {:?}", e)))?;
+
+        match status {
+            PluginPaymentStatus::Succeeded => {
+                // Payment successful - record transaction and update order
+                let now = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map(|d| d.as_secs())
+                    .unwrap_or(0);
+
+                let transaction = PaymentTransaction {
+                    id: format!("txn-{}", payment_hash.iter().fold(String::new(), |mut acc, b| { acc.push_str(&format!("{:02x}", b)); acc })),
+                    external_id: Some(payment_hash.iter().fold(String::new(), |mut acc, b| { acc.push_str(&format!("{:02x}", b)); acc })),
+                    transaction_type: TransactionType::Capture,
+                    amount: order.totals.grand_total,
+                    currency: order.currency.clone(),
+                    status: TransactionStatus::Success,
+                    gateway: "lightning".to_string(),
+                    payment_method: None,
+                    error_message: None,
+                    created_at: now,
+                };
+
+                order.record_payment(transaction);
+                order.update_status(OrderStatus::Processing, Some("payment_system".to_string()));
+
+                // Create blockchain transaction for settlement if plugin available
+                if let Some(blockchain_plugin) = &self.blockchain_plugin {
+                    let blockchain_tx = BlockchainTransaction {
+                        id: payment_hash,
+                        sender: [0u8; 32], // Will be set by merchant
+                        recipient: [0u8; 32], // Will be set by merchant
+                        amount: order.totals.grand_total,
+                        fee: 1000, // Default fee
+                        signature: Vec::new(),
+                        status: BlockchainTxStatus::Pending,
+                        timestamp: now,
+                    };
+
+                    let tx = blockchain_plugin.submit_transaction(blockchain_tx)
+                        .map_err(|e| CommerceError::BlockchainError(format!("Failed to submit blockchain transaction: {:?}", e)))?;
+
+                    order.blockchain_tx_id = Some(tx.id);
+                }
+
+                Ok(())
+            }
+            PluginPaymentStatus::Failed => {
+                // Payment failed
+                order.update_status(OrderStatus::Failed, Some("payment_system".to_string()));
+                Err(CommerceError::PaymentFailed("Payment failed".to_string()))
+            }
+            _ => {
+                // Payment still pending
+                Ok(())
+            }
+        }
+    }
+
+    /// Updates the status of an order.
+    pub fn update_order_status(&self, order_id: &OrderId, status: OrderStatus, user: Option<String>) -> Result<(), CommerceError> {
         let mut orders = self.orders.lock().map_err(|_| CommerceError::LockError)?;
 
         let order = orders
