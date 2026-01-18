@@ -1,14 +1,17 @@
 //! # Inventory Sync (GAP-220-D-004)
 //!
-//! Real-time inventory synchronization and management for the e-commerce platform.
+//! Real-time inventory synchronization and management for the e-commerce
+//! platform.
 
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
 };
 
-use crate::errors::CommerceError;
-use crate::r#impl::product_catalog::{ProductId, Sku};
+use crate::{
+    errors::CommerceError,
+    r#impl::product_catalog::{ProductId, Sku},
+};
 
 // ============================================================================
 // CORE TYPES
@@ -36,29 +39,29 @@ impl LocationId {
 #[derive(Debug, Clone)]
 pub struct InventoryLocation {
     /// Location ID.
-    pub id: LocationId,
+    pub id:                   LocationId,
     /// Location name.
-    pub name: String,
+    pub name:                 String,
     /// Location type.
-    pub location_type: LocationType,
+    pub location_type:        LocationType,
     /// Street address.
-    pub address: String,
+    pub address:              String,
     /// City.
-    pub city: String,
+    pub city:                 String,
     /// State/province.
-    pub state: String,
+    pub state:                String,
     /// Country code.
-    pub country_code: String,
+    pub country_code:         String,
     /// Postal code.
-    pub postal_code: String,
+    pub postal_code:          String,
     /// Whether location is active.
-    pub is_active: bool,
+    pub is_active:            bool,
     /// Priority for fulfillment (lower = higher priority).
     pub fulfillment_priority: u32,
     /// Whether location can ship orders.
-    pub can_ship: bool,
+    pub can_ship:             bool,
     /// Whether location allows in-store pickup.
-    pub allows_pickup: bool,
+    pub allows_pickup:        bool,
 }
 
 impl InventoryLocation {
@@ -120,33 +123,33 @@ pub enum LocationType {
 #[derive(Debug, Clone)]
 pub struct InventoryLevel {
     /// Product ID.
-    pub product_id: ProductId,
+    pub product_id:          ProductId,
     /// Variant ID (if applicable).
-    pub variant_id: Option<ProductId>,
+    pub variant_id:          Option<ProductId>,
     /// Location ID.
-    pub location_id: LocationId,
+    pub location_id:         LocationId,
     /// Available quantity (can be sold).
-    pub available: i64,
+    pub available:           i64,
     /// Committed quantity (reserved for orders).
-    pub committed: i64,
+    pub committed:           i64,
     /// On-hand quantity (physically in stock).
-    pub on_hand: i64,
+    pub on_hand:             i64,
     /// Incoming quantity (on order from supplier).
-    pub incoming: i64,
+    pub incoming:            i64,
     /// Damaged/unsellable quantity.
-    pub damaged: i64,
+    pub damaged:             i64,
     /// Low stock threshold.
     pub low_stock_threshold: u32,
     /// Reorder point.
-    pub reorder_point: u32,
+    pub reorder_point:       u32,
     /// Reorder quantity.
-    pub reorder_quantity: u32,
+    pub reorder_quantity:    u32,
     /// Safety stock level.
-    pub safety_stock: u32,
+    pub safety_stock:        u32,
     /// Last stock count date.
-    pub last_count_at: Option<u64>,
+    pub last_count_at:       Option<u64>,
     /// Last update timestamp.
-    pub updated_at: u64,
+    pub updated_at:          u64,
 }
 
 impl InventoryLevel {
@@ -242,41 +245,37 @@ pub enum AdjustmentType {
 #[derive(Debug, Clone)]
 pub struct InventoryAdjustment {
     /// Adjustment ID.
-    pub id: String,
+    pub id:                String,
     /// Product ID.
-    pub product_id: ProductId,
+    pub product_id:        ProductId,
     /// Variant ID.
-    pub variant_id: Option<ProductId>,
+    pub variant_id:        Option<ProductId>,
     /// Location ID.
-    pub location_id: LocationId,
+    pub location_id:       LocationId,
     /// Adjustment type.
-    pub adjustment_type: AdjustmentType,
+    pub adjustment_type:   AdjustmentType,
     /// Quantity adjusted (positive or negative).
-    pub quantity: i64,
+    pub quantity:          i64,
     /// Previous on-hand quantity.
     pub previous_quantity: i64,
     /// New on-hand quantity.
-    pub new_quantity: i64,
+    pub new_quantity:      i64,
     /// Reference (order ID, PO number, etc).
-    pub reference: Option<String>,
+    pub reference:         Option<String>,
     /// Reason for adjustment.
-    pub reason: String,
+    pub reason:            String,
     /// User who made adjustment.
-    pub user: Option<String>,
+    pub user:              Option<String>,
     /// Adjustment timestamp.
-    pub created_at: u64,
+    pub created_at:        u64,
 }
 
 impl InventoryAdjustment {
     /// Creates a new adjustment record.
     #[must_use]
     pub fn new(
-        product_id: ProductId,
-        location_id: LocationId,
-        adjustment_type: AdjustmentType,
-        quantity: i64,
-        previous_quantity: i64,
-        reason: impl Into<String>,
+        product_id: ProductId, location_id: LocationId, adjustment_type: AdjustmentType,
+        quantity: i64, previous_quantity: i64, reason: impl Into<String>,
     ) -> Self {
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -322,25 +321,25 @@ impl InventoryAdjustment {
 #[derive(Debug, Clone)]
 pub struct StockTransfer {
     /// Transfer ID.
-    pub id: String,
+    pub id:               String,
     /// Source location.
-    pub from_location: LocationId,
+    pub from_location:    LocationId,
     /// Destination location.
-    pub to_location: LocationId,
+    pub to_location:      LocationId,
     /// Transfer status.
-    pub status: TransferStatus,
+    pub status:           TransferStatus,
     /// Items being transferred.
-    pub items: Vec<TransferItem>,
+    pub items:            Vec<TransferItem>,
     /// Expected arrival date.
     pub expected_arrival: Option<u64>,
     /// Actual arrival date.
-    pub arrived_at: Option<u64>,
+    pub arrived_at:       Option<u64>,
     /// Notes.
-    pub notes: Option<String>,
+    pub notes:            Option<String>,
     /// Creation timestamp.
-    pub created_at: u64,
+    pub created_at:       u64,
     /// Last update timestamp.
-    pub updated_at: u64,
+    pub updated_at:       u64,
 }
 
 /// Transfer status.
@@ -361,11 +360,11 @@ pub enum TransferStatus {
 #[derive(Debug, Clone)]
 pub struct TransferItem {
     /// Product ID.
-    pub product_id: ProductId,
+    pub product_id:        ProductId,
     /// Variant ID.
-    pub variant_id: Option<ProductId>,
+    pub variant_id:        Option<ProductId>,
     /// Quantity to transfer.
-    pub quantity: u32,
+    pub quantity:          u32,
     /// Quantity received.
     pub quantity_received: u32,
 }
@@ -421,21 +420,21 @@ impl StockTransfer {
 #[derive(Debug, Clone)]
 pub struct ExternalInventorySource {
     /// Source ID.
-    pub id: String,
+    pub id:                 String,
     /// Source name.
-    pub name: String,
+    pub name:               String,
     /// Source type.
-    pub source_type: ExternalSourceType,
+    pub source_type:        ExternalSourceType,
     /// API endpoint URL.
-    pub endpoint_url: Option<String>,
+    pub endpoint_url:       Option<String>,
     /// Whether sync is enabled.
-    pub sync_enabled: bool,
+    pub sync_enabled:       bool,
     /// Sync interval in seconds.
     pub sync_interval_secs: u64,
     /// Last successful sync.
-    pub last_sync_at: Option<u64>,
+    pub last_sync_at:       Option<u64>,
     /// Last sync status.
-    pub last_sync_status: Option<SyncStatus>,
+    pub last_sync_status:   Option<SyncStatus>,
 }
 
 /// External source type.
@@ -472,36 +471,36 @@ pub enum SyncStatus {
 #[derive(Debug, Clone)]
 pub struct SyncResult {
     /// Source ID.
-    pub source_id: String,
+    pub source_id:       String,
     /// Status.
-    pub status: SyncStatus,
+    pub status:          SyncStatus,
     /// Items processed.
     pub items_processed: u32,
     /// Items updated.
-    pub items_updated: u32,
+    pub items_updated:   u32,
     /// Items failed.
-    pub items_failed: u32,
+    pub items_failed:    u32,
     /// Error messages.
-    pub errors: Vec<String>,
+    pub errors:          Vec<String>,
     /// Sync timestamp.
-    pub synced_at: u64,
+    pub synced_at:       u64,
     /// Duration in milliseconds.
-    pub duration_ms: u64,
+    pub duration_ms:     u64,
 }
 
 /// Inventory change for sync.
 #[derive(Debug, Clone)]
 pub struct InventoryChange {
     /// Product ID (or external ID).
-    pub product_id: String,
+    pub product_id:       String,
     /// SKU.
-    pub sku: Option<Sku>,
+    pub sku:              Option<Sku>,
     /// Location ID (or external ID).
-    pub location_id: String,
+    pub location_id:      String,
     /// New quantity.
-    pub quantity: i64,
+    pub quantity:         i64,
     /// Change type.
-    pub change_type: InventoryChangeType,
+    pub change_type:      InventoryChangeType,
     /// Timestamp of change at source.
     pub source_timestamp: Option<u64>,
 }
@@ -524,8 +523,8 @@ pub enum InventoryChangeType {
 /// Key for inventory level lookup.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct InventoryKey {
-    product_id: ProductId,
-    variant_id: Option<ProductId>,
+    product_id:  ProductId,
+    variant_id:  Option<ProductId>,
     location_id: LocationId,
 }
 
@@ -533,15 +532,15 @@ struct InventoryKey {
 #[derive(Debug)]
 pub struct InventoryService {
     /// Inventory levels.
-    levels: Arc<Mutex<HashMap<InventoryKey, InventoryLevel>>>,
+    levels:      Arc<Mutex<HashMap<InventoryKey, InventoryLevel>>>,
     /// Locations.
-    locations: Arc<Mutex<HashMap<LocationId, InventoryLocation>>>,
+    locations:   Arc<Mutex<HashMap<LocationId, InventoryLocation>>>,
     /// Adjustment history.
     adjustments: Arc<Mutex<Vec<InventoryAdjustment>>>,
     /// Pending transfers.
-    transfers: Arc<Mutex<HashMap<String, StockTransfer>>>,
+    transfers:   Arc<Mutex<HashMap<String, StockTransfer>>>,
     /// External sources.
-    sources: Arc<Mutex<HashMap<String, ExternalInventorySource>>>,
+    sources:     Arc<Mutex<HashMap<String, ExternalInventorySource>>>,
 }
 
 impl InventoryService {
@@ -549,11 +548,11 @@ impl InventoryService {
     #[must_use]
     pub fn new() -> Self {
         let service = Self {
-            levels: Arc::new(Mutex::new(HashMap::new())),
-            locations: Arc::new(Mutex::new(HashMap::new())),
+            levels:      Arc::new(Mutex::new(HashMap::new())),
+            locations:   Arc::new(Mutex::new(HashMap::new())),
             adjustments: Arc::new(Mutex::new(Vec::new())),
-            transfers: Arc::new(Mutex::new(HashMap::new())),
-            sources: Arc::new(Mutex::new(HashMap::new())),
+            transfers:   Arc::new(Mutex::new(HashMap::new())),
+            sources:     Arc::new(Mutex::new(HashMap::new())),
         };
 
         // Add default location
@@ -602,15 +601,12 @@ impl InventoryService {
 
     /// Sets inventory level for a product at a location.
     pub fn set_inventory(
-        &self,
-        product_id: ProductId,
-        location_id: LocationId,
-        on_hand: i64,
+        &self, product_id: ProductId, location_id: LocationId, on_hand: i64,
         reason: impl Into<String>,
     ) -> Result<(), CommerceError> {
         let key = InventoryKey {
-            product_id: product_id.clone(),
-            variant_id: None,
+            product_id:  product_id.clone(),
+            variant_id:  None,
             location_id: location_id.clone(),
         };
 
@@ -618,9 +614,9 @@ impl InventoryService {
 
         let previous_quantity = levels.get(&key).map(|l| l.on_hand).unwrap_or(0);
 
-        let level = levels.entry(key).or_insert_with(|| {
-            InventoryLevel::new(product_id.clone(), location_id.clone())
-        });
+        let level = levels
+            .entry(key)
+            .or_insert_with(|| InventoryLevel::new(product_id.clone(), location_id.clone()));
 
         level.on_hand = on_hand;
         level.recalculate_available();
@@ -643,13 +639,11 @@ impl InventoryService {
 
     /// Gets inventory level for a product at a location.
     pub fn get_inventory(
-        &self,
-        product_id: &ProductId,
-        location_id: &LocationId,
+        &self, product_id: &ProductId, location_id: &LocationId,
     ) -> Result<InventoryLevel, CommerceError> {
         let key = InventoryKey {
-            product_id: product_id.clone(),
-            variant_id: None,
+            product_id:  product_id.clone(),
+            variant_id:  None,
             location_id: location_id.clone(),
         };
 
@@ -674,7 +668,9 @@ impl InventoryService {
     }
 
     /// Gets inventory levels across all locations.
-    pub fn get_all_inventory_for_product(&self, product_id: &ProductId) -> Result<Vec<InventoryLevel>, CommerceError> {
+    pub fn get_all_inventory_for_product(
+        &self, product_id: &ProductId,
+    ) -> Result<Vec<InventoryLevel>, CommerceError> {
         let levels = self.levels.lock().map_err(|_| CommerceError::LockError)?;
 
         Ok(levels
@@ -690,15 +686,12 @@ impl InventoryService {
 
     /// Reserves stock for an order.
     pub fn reserve_stock(
-        &self,
-        product_id: &ProductId,
-        location_id: &LocationId,
-        quantity: u32,
+        &self, product_id: &ProductId, location_id: &LocationId, quantity: u32,
         reference: impl Into<String>,
     ) -> Result<(), CommerceError> {
         let key = InventoryKey {
-            product_id: product_id.clone(),
-            variant_id: None,
+            product_id:  product_id.clone(),
+            variant_id:  None,
             location_id: location_id.clone(),
         };
 
@@ -711,8 +704,8 @@ impl InventoryService {
         if level.available < i64::from(quantity) {
             return Err(CommerceError::InsufficientInventory {
                 product_id: product_id.0.clone(),
-                available: level.available.max(0) as u32,
-                requested: quantity,
+                available:  level.available.max(0) as u32,
+                requested:  quantity,
             });
         }
 
@@ -727,7 +720,8 @@ impl InventoryService {
             i64::from(quantity),
             previous,
             "Stock reserved for order",
-        ).with_reference(reference);
+        )
+        .with_reference(reference);
 
         drop(levels);
         self.record_adjustment(adjustment)?;
@@ -737,15 +731,12 @@ impl InventoryService {
 
     /// Releases reserved stock (e.g., order cancelled).
     pub fn release_stock(
-        &self,
-        product_id: &ProductId,
-        location_id: &LocationId,
-        quantity: u32,
+        &self, product_id: &ProductId, location_id: &LocationId, quantity: u32,
         reference: impl Into<String>,
     ) -> Result<(), CommerceError> {
         let key = InventoryKey {
-            product_id: product_id.clone(),
-            variant_id: None,
+            product_id:  product_id.clone(),
+            variant_id:  None,
             location_id: location_id.clone(),
         };
 
@@ -766,7 +757,8 @@ impl InventoryService {
             -(i64::from(quantity)),
             previous,
             "Stock released",
-        ).with_reference(reference);
+        )
+        .with_reference(reference);
 
         drop(levels);
         self.record_adjustment(adjustment)?;
@@ -776,15 +768,12 @@ impl InventoryService {
 
     /// Commits stock (deduct from on-hand for shipped order).
     pub fn commit_stock(
-        &self,
-        product_id: &ProductId,
-        location_id: &LocationId,
-        quantity: u32,
+        &self, product_id: &ProductId, location_id: &LocationId, quantity: u32,
         reference: impl Into<String>,
     ) -> Result<(), CommerceError> {
         let key = InventoryKey {
-            product_id: product_id.clone(),
-            variant_id: None,
+            product_id:  product_id.clone(),
+            variant_id:  None,
             location_id: location_id.clone(),
         };
 
@@ -806,7 +795,8 @@ impl InventoryService {
             -(i64::from(quantity)),
             previous,
             "Stock shipped",
-        ).with_reference(reference);
+        )
+        .with_reference(reference);
 
         drop(levels);
         self.record_adjustment(adjustment)?;
@@ -816,23 +806,20 @@ impl InventoryService {
 
     /// Receives stock (add to on-hand).
     pub fn receive_stock(
-        &self,
-        product_id: &ProductId,
-        location_id: &LocationId,
-        quantity: u32,
+        &self, product_id: &ProductId, location_id: &LocationId, quantity: u32,
         reference: impl Into<String>,
     ) -> Result<(), CommerceError> {
         let key = InventoryKey {
-            product_id: product_id.clone(),
-            variant_id: None,
+            product_id:  product_id.clone(),
+            variant_id:  None,
             location_id: location_id.clone(),
         };
 
         let mut levels = self.levels.lock().map_err(|_| CommerceError::LockError)?;
 
-        let level = levels.entry(key).or_insert_with(|| {
-            InventoryLevel::new(product_id.clone(), location_id.clone())
-        });
+        let level = levels
+            .entry(key)
+            .or_insert_with(|| InventoryLevel::new(product_id.clone(), location_id.clone()));
 
         let previous = level.on_hand;
         level.on_hand = level.on_hand.saturating_add(i64::from(quantity));
@@ -845,7 +832,8 @@ impl InventoryService {
             i64::from(quantity),
             previous,
             "Stock received",
-        ).with_reference(reference);
+        )
+        .with_reference(reference);
 
         drop(levels);
         self.record_adjustment(adjustment)?;
@@ -859,9 +847,7 @@ impl InventoryService {
 
     /// Creates a stock transfer.
     pub fn create_transfer(
-        &self,
-        from_location: LocationId,
-        to_location: LocationId,
+        &self, from_location: LocationId, to_location: LocationId,
     ) -> Result<StockTransfer, CommerceError> {
         // Validate locations exist
         let _ = self.get_location(&from_location)?;
@@ -895,7 +881,9 @@ impl InventoryService {
                 .get(transfer_id)
                 .ok_or_else(|| CommerceError::TransferNotFound(transfer_id.to_string()))?;
 
-            if transfer.status != TransferStatus::Pending && transfer.status != TransferStatus::InProgress {
+            if transfer.status != TransferStatus::Pending
+                && transfer.status != TransferStatus::InProgress
+            {
                 return Err(CommerceError::InvalidTransferStatus);
             }
 
@@ -912,20 +900,10 @@ impl InventoryService {
             let reference = format!("Transfer {}", transfer_id);
 
             // Deduct from source
-            self.commit_stock(
-                &item.product_id,
-                &from_location,
-                item.quantity,
-                &reference,
-            )?;
+            self.commit_stock(&item.product_id, &from_location, item.quantity, &reference)?;
 
             // Add to destination
-            self.receive_stock(
-                &item.product_id,
-                &to_location,
-                item.quantity,
-                &reference,
-            )?;
+            self.receive_stock(&item.product_id, &to_location, item.quantity, &reference)?;
         }
 
         // Update transfer status
@@ -958,9 +936,7 @@ impl InventoryService {
 
     /// Applies inventory changes from external source.
     pub fn apply_sync_changes(
-        &self,
-        source_id: &str,
-        changes: Vec<InventoryChange>,
+        &self, source_id: &str, changes: Vec<InventoryChange>,
     ) -> Result<SyncResult, CommerceError> {
         let start = std::time::Instant::now();
         let mut processed = 0u32;
@@ -978,7 +954,7 @@ impl InventoryService {
                 Err(e) => {
                     failed += 1;
                     errors.push(format!("Product {}: {}", change.product_id, e));
-                }
+                },
             }
         }
 
@@ -1008,32 +984,34 @@ impl InventoryService {
     }
 
     /// Applies a single inventory change.
-    fn apply_single_change(&self, change: &InventoryChange, source_id: &str) -> Result<(), CommerceError> {
+    fn apply_single_change(
+        &self, change: &InventoryChange, source_id: &str,
+    ) -> Result<(), CommerceError> {
         let product_id = ProductId::new(&change.product_id);
         let location_id = LocationId::new(&change.location_id);
 
         let key = InventoryKey {
-            product_id: product_id.clone(),
-            variant_id: None,
+            product_id:  product_id.clone(),
+            variant_id:  None,
             location_id: location_id.clone(),
         };
 
         let mut levels = self.levels.lock().map_err(|_| CommerceError::LockError)?;
 
-        let level = levels.entry(key).or_insert_with(|| {
-            InventoryLevel::new(product_id.clone(), location_id.clone())
-        });
+        let level = levels
+            .entry(key)
+            .or_insert_with(|| InventoryLevel::new(product_id.clone(), location_id.clone()));
 
         match change.change_type {
             InventoryChangeType::Set => {
                 level.on_hand = change.quantity;
-            }
+            },
             InventoryChangeType::Increment => {
                 level.on_hand = level.on_hand.saturating_add(change.quantity);
-            }
+            },
             InventoryChangeType::Decrement => {
                 level.on_hand = level.on_hand.saturating_sub(change.quantity);
-            }
+            },
         }
 
         level.recalculate_available();
@@ -1092,17 +1070,12 @@ impl InventoryService {
 
     /// Gets adjustment history for a product.
     pub fn get_adjustment_history(
-        &self,
-        product_id: &ProductId,
-        limit: Option<usize>,
+        &self, product_id: &ProductId, limit: Option<usize>,
     ) -> Result<Vec<InventoryAdjustment>, CommerceError> {
         let adjustments = self.adjustments.lock().map_err(|_| CommerceError::LockError)?;
 
-        let mut history: Vec<_> = adjustments
-            .iter()
-            .filter(|a| &a.product_id == product_id)
-            .cloned()
-            .collect();
+        let mut history: Vec<_> =
+            adjustments.iter().filter(|a| &a.product_id == product_id).cloned().collect();
 
         // Sort by most recent first
         history.sort_by(|a, b| b.created_at.cmp(&a.created_at));
@@ -1144,12 +1117,14 @@ mod tests {
         let product_id = ProductId::new("prod-001");
         let location_id = LocationId::default_warehouse();
 
-        service.set_inventory(
-            product_id.clone(),
-            location_id.clone(),
-            100,
-            "Initial stock",
-        ).expect("set inventory");
+        service
+            .set_inventory(
+                product_id.clone(),
+                location_id.clone(),
+                100,
+                "Initial stock",
+            )
+            .expect("set inventory");
 
         let level = service.get_inventory(&product_id, &location_id).expect("get");
 
@@ -1163,14 +1138,13 @@ mod tests {
         let product_id = ProductId::new("prod-001");
         let location_id = LocationId::default_warehouse();
 
-        service.set_inventory(
-            product_id.clone(),
-            location_id.clone(),
-            100,
-            "Initial",
-        ).expect("set");
+        service
+            .set_inventory(product_id.clone(), location_id.clone(), 100, "Initial")
+            .expect("set");
 
-        service.reserve_stock(&product_id, &location_id, 30, "ORD-001").expect("reserve");
+        service
+            .reserve_stock(&product_id, &location_id, 30, "ORD-001")
+            .expect("reserve");
 
         let level = service.get_inventory(&product_id, &location_id).expect("get");
         assert_eq!(level.on_hand, 100);
@@ -1184,12 +1158,9 @@ mod tests {
         let product_id = ProductId::new("prod-001");
         let location_id = LocationId::default_warehouse();
 
-        service.set_inventory(
-            product_id.clone(),
-            location_id.clone(),
-            10,
-            "Low stock",
-        ).expect("set");
+        service
+            .set_inventory(product_id.clone(), location_id.clone(), 10, "Low stock")
+            .expect("set");
 
         let result = service.reserve_stock(&product_id, &location_id, 50, "ORD-001");
         assert!(result.is_err());
@@ -1201,14 +1172,13 @@ mod tests {
         let product_id = ProductId::new("prod-001");
         let location_id = LocationId::default_warehouse();
 
-        service.set_inventory(
-            product_id.clone(),
-            location_id.clone(),
-            100,
-            "Initial",
-        ).expect("set");
+        service
+            .set_inventory(product_id.clone(), location_id.clone(), 100, "Initial")
+            .expect("set");
 
-        service.reserve_stock(&product_id, &location_id, 30, "ORD-001").expect("reserve");
+        service
+            .reserve_stock(&product_id, &location_id, 30, "ORD-001")
+            .expect("reserve");
         service.commit_stock(&product_id, &location_id, 30, "ORD-001").expect("commit");
 
         let level = service.get_inventory(&product_id, &location_id).expect("get");
@@ -1223,14 +1193,13 @@ mod tests {
         let product_id = ProductId::new("prod-001");
         let location_id = LocationId::default_warehouse();
 
-        service.set_inventory(
-            product_id.clone(),
-            location_id.clone(),
-            50,
-            "Initial",
-        ).expect("set");
+        service
+            .set_inventory(product_id.clone(), location_id.clone(), 50, "Initial")
+            .expect("set");
 
-        service.receive_stock(&product_id, &location_id, 100, "PO-001").expect("receive");
+        service
+            .receive_stock(&product_id, &location_id, 100, "PO-001")
+            .expect("receive");
 
         let level = service.get_inventory(&product_id, &location_id).expect("get");
         assert_eq!(level.on_hand, 150);
@@ -1243,12 +1212,9 @@ mod tests {
         let product_id = ProductId::new("prod-001");
         let location_id = LocationId::default_warehouse();
 
-        service.set_inventory(
-            product_id.clone(),
-            location_id.clone(),
-            5,
-            "Low stock",
-        ).expect("set");
+        service
+            .set_inventory(product_id.clone(), location_id.clone(), 5, "Low stock")
+            .expect("set");
 
         let level = service.get_inventory(&product_id, &location_id).expect("get");
         assert!(level.is_low_stock());
@@ -1265,13 +1231,19 @@ mod tests {
         let location1 = LocationId::default_warehouse();
         let location2 = LocationId::new("warehouse-secondary");
 
-        service.add_location(InventoryLocation::warehouse(
-            location2.clone(),
-            "Secondary Warehouse",
-        )).expect("add location");
+        service
+            .add_location(InventoryLocation::warehouse(
+                location2.clone(),
+                "Secondary Warehouse",
+            ))
+            .expect("add location");
 
-        service.set_inventory(product_id.clone(), location1, 100, "Stock 1").expect("set 1");
-        service.set_inventory(product_id.clone(), location2, 50, "Stock 2").expect("set 2");
+        service
+            .set_inventory(product_id.clone(), location1, 100, "Stock 1")
+            .expect("set 1");
+        service
+            .set_inventory(product_id.clone(), location2, 50, "Stock 2")
+            .expect("set 2");
 
         let total = service.get_total_available(&product_id).expect("total");
         assert_eq!(total, 150);
@@ -1283,9 +1255,13 @@ mod tests {
         let product_id = ProductId::new("prod-001");
         let location_id = LocationId::default_warehouse();
 
-        service.set_inventory(product_id.clone(), location_id.clone(), 100, "Initial").expect("set");
+        service
+            .set_inventory(product_id.clone(), location_id.clone(), 100, "Initial")
+            .expect("set");
         service.receive_stock(&product_id, &location_id, 50, "PO-001").expect("receive");
-        service.reserve_stock(&product_id, &location_id, 30, "ORD-001").expect("reserve");
+        service
+            .reserve_stock(&product_id, &location_id, 30, "ORD-001")
+            .expect("reserve");
 
         let history = service.get_adjustment_history(&product_id, None).expect("history");
         assert_eq!(history.len(), 3);

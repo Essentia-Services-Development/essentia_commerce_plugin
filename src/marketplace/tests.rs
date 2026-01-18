@@ -73,3 +73,4 @@ mod integration_tests {
         assert_eq!(hash.as_str(), "test_hash");
     }
 }
+

@@ -1197,3 +1197,5 @@ mod tests {
         assert!(!ProductStatus::Draft.is_visible());
     }
 }
+
+

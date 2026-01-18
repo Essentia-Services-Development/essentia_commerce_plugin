@@ -1057,3 +1057,4 @@ mod tests {
         assert!(cart.validate_for_checkout().is_ok());
     }
 }
+

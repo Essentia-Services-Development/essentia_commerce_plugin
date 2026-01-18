@@ -226,3 +226,4 @@ pub type MarketplaceResult<T> = Result<T, MarketplaceError>;
 
 /// Result type for commerce operations.
 pub type CommerceResult<T> = Result<T, CommerceError>;
+
