@@ -219,8 +219,8 @@ impl OrderLineItem {
             id: line_id,
             product_id: item.product_id.clone(),
             variant_id: item.variant_id.clone(),
-            name: item.product_name.clone(),
-            sku: item.product_sku.clone(),
+            name: item.product_name.to_string(),
+            sku: item.product_sku.to_string(),
             quantity: item.quantity,
             quantity_fulfilled: 0,
             quantity_refunded: 0,
@@ -229,10 +229,10 @@ impl OrderLineItem {
             discount,
             tax,
             total,
-            image_url: item.image_url.clone(),
+            image_url: item.image_url.as_ref().map(|url| url.to_string()),
             taxable: true,
             requires_shipping: true,
-            properties: item.custom_options.clone(),
+            properties: item.custom_options.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect(),
         }
     }
 
@@ -624,7 +624,7 @@ impl Order {
         let mut order = Self {
             id: order_id,
             order_number,
-            customer_id: OrderCustomerId::new(&cart.customer_id.0),
+            customer_id: OrderCustomerId::new(cart.customer_id.0.to_string()),
             customer_email: customer_email.into(),
             customer_phone: None,
             status: OrderStatus::PendingPayment,
@@ -642,7 +642,7 @@ impl Order {
             shipments: Vec::new(),
             notes: Vec::new(),
             history: Vec::new(),
-            customer_note: cart.notes.clone(),
+            customer_note: cart.notes.as_ref().map(|n| n.to_string()),
             ip_address: None,
             user_agent: None,
             source: OrderSource::Web,
@@ -1234,4 +1234,3 @@ mod tests {
         assert_eq!(orders.len(), 2);
     }
 }
-

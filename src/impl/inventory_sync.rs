@@ -21,6 +21,12 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct LocationId(pub String);
 
+impl std::fmt::Display for LocationId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 impl LocationId {
     /// Creates a new location ID.
     #[must_use]
@@ -209,6 +215,16 @@ impl InventoryLevel {
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.as_secs())
             .unwrap_or(0);
+    }
+}
+
+impl std::fmt::Display for InventoryLevel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "InventoryLevel {{ product: {}, location: {}, available: {}, on_hand: {}, committed: {} }}",
+            self.product_id, self.location_id, self.available, self.on_hand, self.committed
+        )
     }
 }
 
@@ -412,6 +428,16 @@ impl StockTransfer {
     }
 }
 
+impl std::fmt::Display for StockTransfer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "StockTransfer {{ id: {}, from: {}, to: {}, status: {:?}, items: {} }}",
+            self.id, self.from_location, self.to_location, self.status, self.items.len()
+        )
+    }
+}
+
 // ============================================================================
 // SYNC OPERATIONS
 // ============================================================================
@@ -573,7 +599,7 @@ impl InventoryService {
         let mut locations = self.locations.lock().map_err(|_| CommerceError::LockError)?;
 
         if locations.contains_key(&location.id) {
-            return Err(CommerceError::LocationAlreadyExists(location.id.0.clone()));
+            return Err(CommerceError::LocationAlreadyExists(location.id.0.to_string()));
         }
 
         locations.insert(location.id.clone(), location);
@@ -586,7 +612,7 @@ impl InventoryService {
         locations
             .get(id)
             .cloned()
-            .ok_or_else(|| CommerceError::LocationNotFound(id.0.clone()))
+            .ok_or_else(|| CommerceError::LocationNotFound(id.0.to_string()))
     }
 
     /// Gets all active locations.
@@ -621,7 +647,7 @@ impl InventoryService {
         level.on_hand = on_hand;
         level.recalculate_available();
 
-        // Record adjustment
+        // Record adjustment - move values since we don't need them after this
         let adjustment = InventoryAdjustment::new(
             product_id,
             location_id,
@@ -651,7 +677,7 @@ impl InventoryService {
         levels
             .get(&key)
             .cloned()
-            .ok_or_else(|| CommerceError::InventoryNotFound(product_id.0.clone()))
+            .ok_or_else(|| CommerceError::InventoryNotFound(product_id.0.to_string()))
     }
 
     /// Gets total available quantity across all locations.
@@ -699,11 +725,11 @@ impl InventoryService {
 
         let level = levels
             .get_mut(&key)
-            .ok_or_else(|| CommerceError::InventoryNotFound(product_id.0.clone()))?;
+            .ok_or_else(|| CommerceError::InventoryNotFound(product_id.0.to_string()))?;
 
         if level.available < i64::from(quantity) {
             return Err(CommerceError::InsufficientInventory {
-                product_id: product_id.0.clone(),
+                product_id: product_id.0.to_string(),
                 available:  level.available.max(0) as u32,
                 requested:  quantity,
             });
@@ -713,6 +739,7 @@ impl InventoryService {
         level.committed = level.committed.saturating_add(i64::from(quantity));
         level.recalculate_available();
 
+        // Clone product_id and location_id for the adjustment since we still need references for error handling
         let adjustment = InventoryAdjustment::new(
             product_id.clone(),
             location_id.clone(),
@@ -744,7 +771,7 @@ impl InventoryService {
 
         let level = levels
             .get_mut(&key)
-            .ok_or_else(|| CommerceError::InventoryNotFound(product_id.0.clone()))?;
+            .ok_or_else(|| CommerceError::InventoryNotFound(product_id.0.to_string()))?;
 
         let previous = level.committed;
         level.committed = level.committed.saturating_sub(i64::from(quantity));
@@ -781,7 +808,7 @@ impl InventoryService {
 
         let level = levels
             .get_mut(&key)
-            .ok_or_else(|| CommerceError::InventoryNotFound(product_id.0.clone()))?;
+            .ok_or_else(|| CommerceError::InventoryNotFound(product_id.0.to_string()))?;
 
         let previous = level.on_hand;
         level.on_hand = level.on_hand.saturating_sub(i64::from(quantity));
@@ -809,17 +836,21 @@ impl InventoryService {
         &self, product_id: &ProductId, location_id: &LocationId, quantity: u32,
         reference: impl Into<String>,
     ) -> Result<(), CommerceError> {
+        // Clone for key - required since we need owned values in the key
+        let product_id_owned = product_id.clone();
+        let location_id_owned = location_id.clone();
+
         let key = InventoryKey {
-            product_id:  product_id.clone(),
+            product_id:  product_id_owned.clone(),
             variant_id:  None,
-            location_id: location_id.clone(),
+            location_id: location_id_owned.clone(),
         };
 
         let mut levels = self.levels.lock().map_err(|_| CommerceError::LockError)?;
 
         let level = levels
             .entry(key)
-            .or_insert_with(|| InventoryLevel::new(product_id.clone(), location_id.clone()));
+            .or_insert_with(|| InventoryLevel::new(product_id_owned.clone(), location_id_owned.clone()));
 
         let previous = level.on_hand;
         level.on_hand = level.on_hand.saturating_add(i64::from(quantity));
@@ -854,7 +885,7 @@ impl InventoryService {
         let _ = self.get_location(&to_location)?;
 
         let transfer = StockTransfer::new(from_location, to_location);
-        let transfer_id = transfer.id.clone();
+        let transfer_id = transfer.id.to_string();
 
         let mut transfers = self.transfers.lock().map_err(|_| CommerceError::LockError)?;
         transfers.insert(transfer_id, transfer.clone());
@@ -930,7 +961,7 @@ impl InventoryService {
     /// Registers an external inventory source.
     pub fn register_source(&self, source: ExternalInventorySource) -> Result<(), CommerceError> {
         let mut sources = self.sources.lock().map_err(|_| CommerceError::LockError)?;
-        sources.insert(source.id.clone(), source);
+        sources.insert(source.id.to_string(), source);
         Ok(())
     }
 
@@ -990,6 +1021,7 @@ impl InventoryService {
         let product_id = ProductId::new(&change.product_id);
         let location_id = LocationId::new(&change.location_id);
 
+        // Clone once for key, reuse for or_insert_with
         let key = InventoryKey {
             product_id:  product_id.clone(),
             variant_id:  None,
@@ -998,9 +1030,12 @@ impl InventoryService {
 
         let mut levels = self.levels.lock().map_err(|_| CommerceError::LockError)?;
 
+        // Use key's cloned values for or_insert_with to avoid additional clones
+        let key_product_id = product_id.clone();
+        let key_location_id = location_id.clone();
         let level = levels
             .entry(key)
-            .or_insert_with(|| InventoryLevel::new(product_id.clone(), location_id.clone()));
+            .or_insert_with(|| InventoryLevel::new(key_product_id, key_location_id));
 
         match change.change_type {
             InventoryChangeType::Set => {
@@ -1119,8 +1154,8 @@ mod tests {
 
         service
             .set_inventory(
-                product_id.clone(),
-                location_id.clone(),
+                product_id.to_string(),
+                location_id.to_string(),
                 100,
                 "Initial stock",
             )
@@ -1139,7 +1174,7 @@ mod tests {
         let location_id = LocationId::default_warehouse();
 
         service
-            .set_inventory(product_id.clone(), location_id.clone(), 100, "Initial")
+            .set_inventory(product_id.to_string(), location_id.to_string(), 100, "Initial")
             .expect("set");
 
         service
@@ -1159,7 +1194,7 @@ mod tests {
         let location_id = LocationId::default_warehouse();
 
         service
-            .set_inventory(product_id.clone(), location_id.clone(), 10, "Low stock")
+            .set_inventory(product_id.to_string(), location_id.to_string(), 10, "Low stock")
             .expect("set");
 
         let result = service.reserve_stock(&product_id, &location_id, 50, "ORD-001");
@@ -1173,7 +1208,7 @@ mod tests {
         let location_id = LocationId::default_warehouse();
 
         service
-            .set_inventory(product_id.clone(), location_id.clone(), 100, "Initial")
+            .set_inventory(product_id.to_string(), location_id.to_string(), 100, "Initial")
             .expect("set");
 
         service
@@ -1194,7 +1229,7 @@ mod tests {
         let location_id = LocationId::default_warehouse();
 
         service
-            .set_inventory(product_id.clone(), location_id.clone(), 50, "Initial")
+            .set_inventory(product_id.to_string(), location_id.to_string(), 50, "Initial")
             .expect("set");
 
         service
@@ -1213,7 +1248,7 @@ mod tests {
         let location_id = LocationId::default_warehouse();
 
         service
-            .set_inventory(product_id.clone(), location_id.clone(), 5, "Low stock")
+            .set_inventory(product_id.to_string(), location_id.to_string(), 5, "Low stock")
             .expect("set");
 
         let level = service.get_inventory(&product_id, &location_id).expect("get");
@@ -1233,16 +1268,16 @@ mod tests {
 
         service
             .add_location(InventoryLocation::warehouse(
-                location2.clone(),
+                location2.to_string(),
                 "Secondary Warehouse",
             ))
             .expect("add location");
 
         service
-            .set_inventory(product_id.clone(), location1, 100, "Stock 1")
+            .set_inventory(product_id.to_string(), location1, 100, "Stock 1")
             .expect("set 1");
         service
-            .set_inventory(product_id.clone(), location2, 50, "Stock 2")
+            .set_inventory(product_id.to_string(), location2, 50, "Stock 2")
             .expect("set 2");
 
         let total = service.get_total_available(&product_id).expect("total");
@@ -1256,7 +1291,7 @@ mod tests {
         let location_id = LocationId::default_warehouse();
 
         service
-            .set_inventory(product_id.clone(), location_id.clone(), 100, "Initial")
+            .set_inventory(product_id.to_string(), location_id.to_string(), 100, "Initial")
             .expect("set");
         service.receive_stock(&product_id, &location_id, 50, "PO-001").expect("receive");
         service

@@ -3,12 +3,15 @@
 //! Complete shopping cart management for the e-commerce platform.
 
 use std::{
+    borrow::Cow,
     collections::HashMap,
     sync::{Arc, Mutex},
 };
 
-use crate::errors::CommerceError;
-use crate::r#impl::product_catalog::{Price, Product, ProductId, Currency};
+use crate::{
+    errors::CommerceError,
+    r#impl::product_catalog::{Currency, Price, Product, ProductId},
+};
 
 // ============================================================================
 // CORE TYPES
@@ -16,13 +19,19 @@ use crate::r#impl::product_catalog::{Price, Product, ProductId, Currency};
 
 /// Unique cart identifier.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct CartId(pub String);
+pub struct CartId(pub Cow<'static, str>);
 
 impl CartId {
     /// Creates a new cart ID.
     #[must_use]
     pub fn new(id: impl Into<String>) -> Self {
-        Self(id.into())
+        Self(Cow::Owned(id.into()))
+    }
+
+    /// Creates a cart ID from a static string slice (zero-copy).
+    #[must_use]
+    pub fn from_static(id: &'static str) -> Self {
+        Self(Cow::Borrowed(id))
     }
 
     /// Generates a new unique cart ID.
@@ -32,7 +41,7 @@ impl CartId {
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.as_nanos())
             .unwrap_or(0);
-        Self(format!("cart-{}", timestamp))
+        Self(Cow::Owned(format!("cart-{}", timestamp)))
     }
 }
 
@@ -44,19 +53,25 @@ impl std::fmt::Display for CartId {
 
 /// User/customer identifier.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct CustomerId(pub String);
+pub struct CustomerId(pub Cow<'static, str>);
 
 impl CustomerId {
     /// Creates a new customer ID.
     #[must_use]
     pub fn new(id: impl Into<String>) -> Self {
-        Self(id.into())
+        Self(Cow::Owned(id.into()))
+    }
+
+    /// Creates a customer ID from a static string slice (zero-copy).
+    #[must_use]
+    pub fn from_static(id: &'static str) -> Self {
+        Self(Cow::Borrowed(id))
     }
 
     /// Guest customer ID.
     #[must_use]
     pub fn guest() -> Self {
-        Self("guest".to_string())
+        Self(Cow::Borrowed("guest"))
     }
 }
 
@@ -78,13 +93,19 @@ pub enum CartStatus {
 
 /// Coupon/discount code.
 #[derive(Debug, Clone)]
-pub struct CouponCode(pub String);
+pub struct CouponCode(pub Cow<'static, str>);
 
 impl CouponCode {
     /// Creates a new coupon code.
     #[must_use]
     pub fn new(code: impl Into<String>) -> Self {
-        Self(code.into().to_uppercase())
+        Self(Cow::Owned(code.into().to_uppercase()))
+    }
+
+    /// Creates a coupon code from a static string slice (zero-copy).
+    #[must_use]
+    pub fn from_static(code: &'static str) -> Self {
+        Self(Cow::Borrowed(code))
     }
 }
 
@@ -105,15 +126,15 @@ pub enum DiscountType {
 #[derive(Debug, Clone)]
 pub struct AppliedDiscount {
     /// Discount code used.
-    pub code: CouponCode,
+    pub code:          CouponCode,
     /// Type of discount.
     pub discount_type: DiscountType,
     /// Discount value (percentage or amount).
-    pub value: u64,
+    pub value:         u64,
     /// Description of the discount.
-    pub description: String,
+    pub description:   String,
     /// Amount saved by this discount.
-    pub savings: u64,
+    pub savings:       u64,
 }
 
 impl AppliedDiscount {
@@ -150,29 +171,29 @@ impl AppliedDiscount {
 #[derive(Debug, Clone)]
 pub struct CartItem {
     /// Product ID.
-    pub product_id: ProductId,
+    pub product_id:     ProductId,
     /// Variant ID (if applicable).
-    pub variant_id: Option<ProductId>,
+    pub variant_id:     Option<ProductId>,
     /// Product name (cached for display).
-    pub product_name: String,
+    pub product_name:   Cow<'static, str>,
     /// Product SKU (cached).
-    pub product_sku: String,
+    pub product_sku:    Cow<'static, str>,
     /// Product image URL (cached).
-    pub image_url: Option<String>,
+    pub image_url:      Option<Cow<'static, str>>,
     /// Quantity.
-    pub quantity: u32,
+    pub quantity:       u32,
     /// Unit price at time of adding.
-    pub unit_price: Price,
+    pub unit_price:     Price,
     /// Original price (before any sale).
     pub original_price: Price,
     /// Applied item-level discounts.
-    pub discounts: Vec<AppliedDiscount>,
+    pub discounts:      Vec<AppliedDiscount>,
     /// Custom options selected.
-    pub custom_options: HashMap<String, String>,
+    pub custom_options: HashMap<Cow<'static, str>, Cow<'static, str>>,
     /// When item was added.
-    pub added_at: u64,
+    pub added_at:       u64,
     /// When item was last updated.
-    pub updated_at: u64,
+    pub updated_at:     u64,
 }
 
 impl CartItem {
@@ -187,9 +208,9 @@ impl CartItem {
         Self {
             product_id: product.id.clone(),
             variant_id: None,
-            product_name: product.name.clone(),
-            product_sku: product.sku.0.clone(),
-            image_url: product.primary_image().map(|img| img.url.clone()),
+            product_name: Cow::Owned(product.name.clone()),
+            product_sku: Cow::Owned(product.sku.0.to_string()),
+            image_url: product.primary_image().map(|img| Cow::Owned(img.url.clone())),
             quantity,
             unit_price: product.effective_price().clone(),
             original_price: product.price.clone(),
@@ -252,50 +273,46 @@ impl CartItem {
 #[derive(Debug, Clone, Default)]
 pub struct ShippingAddress {
     /// First name.
-    pub first_name: String,
+    pub first_name:    Cow<'static, str>,
     /// Last name.
-    pub last_name: String,
+    pub last_name:     Cow<'static, str>,
     /// Company name.
-    pub company: Option<String>,
+    pub company:       Option<Cow<'static, str>>,
     /// Address line 1.
-    pub address_line1: String,
+    pub address_line1: Cow<'static, str>,
     /// Address line 2.
-    pub address_line2: Option<String>,
+    pub address_line2: Option<Cow<'static, str>>,
     /// City.
-    pub city: String,
+    pub city:          Cow<'static, str>,
     /// State/province.
-    pub state: String,
+    pub state:         Cow<'static, str>,
     /// Postal/ZIP code.
-    pub postal_code: String,
+    pub postal_code:   Cow<'static, str>,
     /// Country code (ISO 3166-1 alpha-2).
-    pub country_code: String,
+    pub country_code:  Cow<'static, str>,
     /// Phone number.
-    pub phone: Option<String>,
+    pub phone:         Option<Cow<'static, str>>,
 }
 
 impl ShippingAddress {
     /// Creates a new shipping address.
     #[must_use]
     pub fn new(
-        first_name: impl Into<String>,
-        last_name: impl Into<String>,
-        address_line1: impl Into<String>,
-        city: impl Into<String>,
-        state: impl Into<String>,
-        postal_code: impl Into<String>,
-        country_code: impl Into<String>,
+        first_name: impl Into<String>, last_name: impl Into<String>,
+        address_line1: impl Into<String>, city: impl Into<String>, state: impl Into<String>,
+        postal_code: impl Into<String>, country_code: impl Into<String>,
     ) -> Self {
         Self {
-            first_name: first_name.into(),
-            last_name: last_name.into(),
-            company: None,
-            address_line1: address_line1.into(),
+            first_name:    Cow::Owned(first_name.into()),
+            last_name:     Cow::Owned(last_name.into()),
+            company:       None,
+            address_line1: Cow::Owned(address_line1.into()),
             address_line2: None,
-            city: city.into(),
-            state: state.into(),
-            postal_code: postal_code.into(),
-            country_code: country_code.into(),
-            phone: None,
+            city:          Cow::Owned(city.into()),
+            state:         Cow::Owned(state.into()),
+            postal_code:   Cow::Owned(postal_code.into()),
+            country_code:  Cow::Owned(country_code.into()),
+            phone:         None,
         }
     }
 
@@ -310,19 +327,19 @@ impl ShippingAddress {
 #[derive(Debug, Clone)]
 pub struct ShippingMethod {
     /// Method identifier.
-    pub id: String,
+    pub id:                 Cow<'static, str>,
     /// Display name.
-    pub name: String,
+    pub name:               Cow<'static, str>,
     /// Description.
-    pub description: String,
+    pub description:        Cow<'static, str>,
     /// Shipping cost.
-    pub cost: Price,
+    pub cost:               Price,
     /// Estimated delivery days (min).
     pub estimated_days_min: u32,
     /// Estimated delivery days (max).
     pub estimated_days_max: u32,
     /// Whether tracking is available.
-    pub has_tracking: bool,
+    pub has_tracking:       bool,
 }
 
 impl ShippingMethod {
@@ -330,9 +347,23 @@ impl ShippingMethod {
     #[must_use]
     pub fn new(id: impl Into<String>, name: impl Into<String>, cost: Price) -> Self {
         Self {
-            id: id.into(),
-            name: name.into(),
-            description: String::new(),
+            id: Cow::Owned(id.into()),
+            name: Cow::Owned(name.into()),
+            description: Cow::Owned(String::new()),
+            cost,
+            estimated_days_min: 3,
+            estimated_days_max: 7,
+            has_tracking: true,
+        }
+    }
+
+    /// Creates a shipping method from static strings (zero-copy).
+    #[must_use]
+    pub fn from_static(id: &'static str, name: &'static str, cost: Price) -> Self {
+        Self {
+            id: Cow::Borrowed(id),
+            name: Cow::Borrowed(name),
+            description: Cow::Borrowed(""),
             cost,
             estimated_days_min: 3,
             estimated_days_max: 7,
@@ -344,13 +375,13 @@ impl ShippingMethod {
     #[must_use]
     pub fn free_shipping() -> Self {
         Self {
-            id: "free".to_string(),
-            name: "Free Shipping".to_string(),
-            description: "Standard free shipping".to_string(),
-            cost: Price::new(0, Currency::usd(), 2),
+            id:                 Cow::Borrowed("free"),
+            name:               Cow::Borrowed("Free Shipping"),
+            description:        Cow::Borrowed("Standard free shipping"),
+            cost:               Price::new(0, Currency::usd(), 2),
             estimated_days_min: 5,
             estimated_days_max: 10,
-            has_tracking: false,
+            has_tracking:       false,
         }
     }
 
@@ -360,7 +391,10 @@ impl ShippingMethod {
         if self.estimated_days_min == self.estimated_days_max {
             format!("{} business days", self.estimated_days_min)
         } else {
-            format!("{}-{} business days", self.estimated_days_min, self.estimated_days_max)
+            format!(
+                "{}-{} business days",
+                self.estimated_days_min, self.estimated_days_max
+            )
         }
     }
 }
@@ -373,32 +407,29 @@ impl ShippingMethod {
 #[derive(Debug, Clone, Default)]
 pub struct CartTotals {
     /// Subtotal (sum of line totals before discounts).
-    pub subtotal: u64,
+    pub subtotal:       u64,
     /// Total discounts applied.
     pub discount_total: u64,
     /// Shipping cost.
     pub shipping_total: u64,
     /// Tax amount.
-    pub tax_total: u64,
+    pub tax_total:      u64,
     /// Grand total.
-    pub grand_total: u64,
+    pub grand_total:    u64,
     /// Total savings (from sales and discounts).
-    pub total_savings: u64,
+    pub total_savings:  u64,
     /// Number of items.
-    pub item_count: u32,
+    pub item_count:     u32,
     /// Currency.
-    pub currency: Currency,
+    pub currency:       Currency,
 }
 
 impl CartTotals {
     /// Calculates totals for a cart.
     #[must_use]
     pub fn calculate(
-        items: &[CartItem],
-        cart_discounts: &[AppliedDiscount],
-        shipping: Option<&ShippingMethod>,
-        tax_rate: f64,
-        currency: Currency,
+        items: &[CartItem], cart_discounts: &[AppliedDiscount], shipping: Option<&ShippingMethod>,
+        tax_rate: f64, currency: Currency,
     ) -> Self {
         let subtotal: u64 = items.iter().map(|i| i.subtotal()).sum();
         let item_discounts: u64 = items.iter().map(|i| i.total_discount()).sum();
@@ -410,13 +441,13 @@ impl CartTotals {
             match discount.discount_type {
                 DiscountType::Percentage => {
                     cart_discount_total += (subtotal * discount.value) / 100;
-                }
+                },
                 DiscountType::FixedAmount => {
                     cart_discount_total += discount.value;
-                }
+                },
                 DiscountType::FreeShipping | DiscountType::BuyXGetY => {
                     // Handled separately
-                }
+                },
             }
         }
 
@@ -424,9 +455,8 @@ impl CartTotals {
         let subtotal_after_discount = subtotal.saturating_sub(discount_total);
 
         // Check for free shipping discount
-        let has_free_shipping = cart_discounts
-            .iter()
-            .any(|d| d.discount_type == DiscountType::FreeShipping);
+        let has_free_shipping =
+            cart_discounts.iter().any(|d| d.discount_type == DiscountType::FreeShipping);
 
         let shipping_total = if has_free_shipping {
             0
@@ -463,35 +493,35 @@ impl CartTotals {
 #[derive(Debug, Clone)]
 pub struct Cart {
     /// Cart ID.
-    pub id: CartId,
+    pub id:               CartId,
     /// Customer ID.
-    pub customer_id: CustomerId,
+    pub customer_id:      CustomerId,
     /// Cart status.
-    pub status: CartStatus,
+    pub status:           CartStatus,
     /// Items in cart.
-    pub items: Vec<CartItem>,
+    pub items:            Vec<CartItem>,
     /// Applied coupon codes.
-    pub discounts: Vec<AppliedDiscount>,
+    pub discounts:        Vec<AppliedDiscount>,
     /// Shipping address.
     pub shipping_address: Option<ShippingAddress>,
     /// Billing address.
-    pub billing_address: Option<ShippingAddress>,
+    pub billing_address:  Option<ShippingAddress>,
     /// Selected shipping method.
-    pub shipping_method: Option<ShippingMethod>,
+    pub shipping_method:  Option<ShippingMethod>,
     /// Default currency.
-    pub currency: Currency,
+    pub currency:         Currency,
     /// Tax rate percentage.
-    pub tax_rate: f64,
+    pub tax_rate:         f64,
     /// Cart notes.
-    pub notes: Option<String>,
+    pub notes:            Option<Cow<'static, str>>,
     /// Creation timestamp.
-    pub created_at: u64,
+    pub created_at:       u64,
     /// Last update timestamp.
-    pub updated_at: u64,
+    pub updated_at:       u64,
     /// Last activity timestamp.
     pub last_activity_at: u64,
     /// Cart expiration timestamp.
-    pub expires_at: Option<u64>,
+    pub expires_at:       Option<u64>,
 }
 
 impl Cart {
@@ -565,7 +595,7 @@ impl Cart {
         }
 
         if !product.status.is_purchasable() {
-            return Err(CommerceError::ProductNotAvailable(product.id.0.clone()));
+            return Err(CommerceError::ProductNotAvailable(product.id.0.to_string()));
         }
 
         // Check if product already in cart
@@ -575,9 +605,9 @@ impl Cart {
             // Check inventory
             if !product.backorders_allowed && (new_qty as i64) > product.inventory_quantity {
                 return Err(CommerceError::InsufficientInventory {
-                    product_id: product.id.0.clone(),
-                    available: product.inventory_quantity as u32,
-                    requested: new_qty,
+                    product_id: product.id.0.to_string(),
+                    available:  product.inventory_quantity as u32,
+                    requested:  new_qty,
                 });
             }
 
@@ -586,9 +616,9 @@ impl Cart {
             // Check inventory for new item
             if !product.backorders_allowed && (quantity as i64) > product.inventory_quantity {
                 return Err(CommerceError::InsufficientInventory {
-                    product_id: product.id.0.clone(),
-                    available: product.inventory_quantity as u32,
-                    requested: quantity,
+                    product_id: product.id.0.to_string(),
+                    available:  product.inventory_quantity as u32,
+                    requested:  quantity,
                 });
             }
 
@@ -603,9 +633,7 @@ impl Cart {
     ///
     /// Removes item if quantity is 0.
     pub fn update_item_quantity(
-        &mut self,
-        product_id: &ProductId,
-        quantity: u32,
+        &mut self, product_id: &ProductId, quantity: u32,
     ) -> Result<(), CommerceError> {
         if quantity == 0 {
             return self.remove_item(product_id);
@@ -615,7 +643,7 @@ impl Cart {
             .items
             .iter_mut()
             .find(|i| &i.product_id == product_id)
-            .ok_or_else(|| CommerceError::ItemNotInCart(product_id.0.clone()))?;
+            .ok_or_else(|| CommerceError::ItemNotInCart(product_id.0.to_string()))?;
 
         item.set_quantity(quantity);
         self.touch();
@@ -628,7 +656,7 @@ impl Cart {
         self.items.retain(|i| &i.product_id != product_id);
 
         if self.items.len() == initial_len {
-            return Err(CommerceError::ItemNotInCart(product_id.0.clone()));
+            return Err(CommerceError::ItemNotInCart(product_id.0.to_string()));
         }
 
         self.touch();
@@ -646,7 +674,9 @@ impl Cart {
     pub fn apply_discount(&mut self, discount: AppliedDiscount) -> Result<(), CommerceError> {
         // Check if already applied
         if self.discounts.iter().any(|d| d.code.0 == discount.code.0) {
-            return Err(CommerceError::DiscountAlreadyApplied(discount.code.0));
+            return Err(CommerceError::DiscountAlreadyApplied(
+                discount.code.0.to_string(),
+            ));
         }
 
         self.discounts.push(discount);
@@ -741,7 +771,7 @@ impl Cart {
 #[derive(Debug)]
 pub struct CartService {
     /// Carts indexed by ID.
-    carts: Arc<Mutex<HashMap<CartId, Cart>>>,
+    carts:             Arc<Mutex<HashMap<CartId, Cart>>>,
     /// Carts indexed by customer ID.
     carts_by_customer: Arc<Mutex<HashMap<CustomerId, Vec<CartId>>>>,
 }
@@ -751,7 +781,7 @@ impl CartService {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            carts: Arc::new(Mutex::new(HashMap::new())),
+            carts:             Arc::new(Mutex::new(HashMap::new())),
             carts_by_customer: Arc::new(Mutex::new(HashMap::new())),
         }
     }
@@ -762,13 +792,11 @@ impl CartService {
         let cart_id = cart.id.clone();
 
         let mut carts = self.carts.lock().map_err(|_| CommerceError::LockError)?;
-        let mut by_customer = self.carts_by_customer.lock().map_err(|_| CommerceError::LockError)?;
+        let mut by_customer =
+            self.carts_by_customer.lock().map_err(|_| CommerceError::LockError)?;
 
         carts.insert(cart_id.clone(), cart.clone());
-        by_customer
-            .entry(customer_id)
-            .or_insert_with(Vec::new)
-            .push(cart_id);
+        by_customer.entry(customer_id).or_insert_with(Vec::new).push(cart_id);
 
         Ok(cart)
     }
@@ -779,11 +807,13 @@ impl CartService {
         carts
             .get(id)
             .cloned()
-            .ok_or_else(|| CommerceError::CartNotFound(id.0.clone()))
+            .ok_or_else(|| CommerceError::CartNotFound(id.0.to_string()))
     }
 
     /// Gets active cart for a customer.
-    pub fn get_customer_cart(&self, customer_id: &CustomerId) -> Result<Option<Cart>, CommerceError> {
+    pub fn get_customer_cart(
+        &self, customer_id: &CustomerId,
+    ) -> Result<Option<Cart>, CommerceError> {
         let carts = self.carts.lock().map_err(|_| CommerceError::LockError)?;
         let by_customer = self.carts_by_customer.lock().map_err(|_| CommerceError::LockError)?;
 
@@ -813,7 +843,7 @@ impl CartService {
         let mut carts = self.carts.lock().map_err(|_| CommerceError::LockError)?;
 
         if !carts.contains_key(&cart.id) {
-            return Err(CommerceError::CartNotFound(cart.id.0.clone()));
+            return Err(CommerceError::CartNotFound(cart.id.0.to_string()));
         }
 
         carts.insert(cart.id.clone(), cart);
@@ -822,15 +852,13 @@ impl CartService {
 
     /// Merges a guest cart into a customer cart.
     pub fn merge_carts(
-        &self,
-        guest_cart_id: &CartId,
-        customer_id: &CustomerId,
+        &self, guest_cart_id: &CartId, customer_id: &CustomerId,
     ) -> Result<Cart, CommerceError> {
         let carts = self.carts.lock().map_err(|_| CommerceError::LockError)?;
 
         let guest_cart = carts
             .get(guest_cart_id)
-            .ok_or_else(|| CommerceError::CartNotFound(guest_cart_id.0.clone()))?
+            .ok_or_else(|| CommerceError::CartNotFound(guest_cart_id.0.to_string()))?
             .clone();
 
         // Get or create customer cart
@@ -839,10 +867,8 @@ impl CartService {
 
         // Merge items
         for item in guest_cart.items {
-            if let Some(existing) = customer_cart
-                .items
-                .iter_mut()
-                .find(|i| i.product_id == item.product_id)
+            if let Some(existing) =
+                customer_cart.items.iter_mut().find(|i| i.product_id == item.product_id)
             {
                 existing.quantity = existing.quantity.saturating_add(item.quantity);
             } else {
@@ -866,7 +892,7 @@ impl CartService {
 
         let cart = carts
             .get_mut(cart_id)
-            .ok_or_else(|| CommerceError::CartNotFound(cart_id.0.clone()))?;
+            .ok_or_else(|| CommerceError::CartNotFound(cart_id.0.to_string()))?;
 
         cart.status = CartStatus::Converted;
         Ok(())
@@ -887,7 +913,10 @@ impl CartService {
         carts.retain(|_, cart| {
             let age = now.saturating_sub(cart.last_activity_at);
             let is_old = age > max_age_secs;
-            let is_inactive = matches!(cart.status, CartStatus::Converted | CartStatus::Merged | CartStatus::Expired);
+            let is_inactive = matches!(
+                cart.status,
+                CartStatus::Converted | CartStatus::Merged | CartStatus::Expired
+            );
             !is_old || !is_inactive
         });
 
@@ -908,7 +937,7 @@ impl Default for CartService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::r#impl::product_catalog::{Product, ProductId, Sku, ProductStatus};
+    use crate::r#impl::product_catalog::{Product, ProductId, ProductStatus, Sku};
 
     fn create_test_product(id: &str, price: u64) -> Product {
         let mut product = Product::new(
@@ -991,18 +1020,14 @@ mod tests {
         let totals = cart.calculate_totals();
 
         assert_eq!(totals.subtotal, 4000); // (1000*2) + (2000*1)
-        assert_eq!(totals.tax_total, 400);  // 10% of 4000
+        assert_eq!(totals.tax_total, 400); // 10% of 4000
         assert_eq!(totals.item_count, 3);
     }
 
     #[test]
     fn test_apply_discount() {
         let mut cart = Cart::new(CustomerId::new("customer-1"));
-        let discount = AppliedDiscount::percentage(
-            CouponCode::new("SAVE10"),
-            10,
-            "10% off",
-        );
+        let discount = AppliedDiscount::percentage(CouponCode::new("SAVE10"), 10, "10% off");
 
         cart.apply_discount(discount).expect("apply discount");
         assert_eq!(cart.discounts.len(), 1);
@@ -1011,16 +1036,9 @@ mod tests {
     #[test]
     fn test_duplicate_discount_rejected() {
         let mut cart = Cart::new(CustomerId::new("customer-1"));
-        let discount1 = AppliedDiscount::percentage(
-            CouponCode::new("SAVE10"),
-            10,
-            "10% off",
-        );
-        let discount2 = AppliedDiscount::percentage(
-            CouponCode::new("SAVE10"),
-            10,
-            "Another 10% off",
-        );
+        let discount1 = AppliedDiscount::percentage(CouponCode::new("SAVE10"), 10, "10% off");
+        let discount2 =
+            AppliedDiscount::percentage(CouponCode::new("SAVE10"), 10, "Another 10% off");
 
         cart.apply_discount(discount1).expect("first");
         let result = cart.apply_discount(discount2);
@@ -1052,9 +1070,14 @@ mod tests {
 
         // With shipping address succeeds
         cart.set_shipping_address(ShippingAddress::new(
-            "John", "Doe", "123 Main St", "City", "State", "12345", "US",
+            "John",
+            "Doe",
+            "123 Main St",
+            "City",
+            "State",
+            "12345",
+            "US",
         ));
         assert!(cart.validate_for_checkout().is_ok());
     }
 }
-

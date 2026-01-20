@@ -3,6 +3,7 @@
 //! Complete product catalog management system for the e-commerce platform.
 
 use std::{
+    borrow::Cow,
     collections::HashMap,
     sync::{Arc, Mutex},
 };
@@ -15,13 +16,19 @@ use crate::errors::CommerceError;
 
 /// Unique product identifier.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ProductId(pub String);
+pub struct ProductId(pub Cow<'static, str>);
 
 impl ProductId {
     /// Creates a new product ID.
     #[must_use]
     pub fn new(id: impl Into<String>) -> Self {
-        Self(id.into())
+        Self(Cow::Owned(id.into()))
+    }
+
+    /// Creates a product ID from a static string slice (zero-copy).
+    #[must_use]
+    pub fn from_static(id: &'static str) -> Self {
+        Self(Cow::Borrowed(id))
     }
 
     /// Returns the ID as a string slice.
@@ -39,25 +46,49 @@ impl std::fmt::Display for ProductId {
 
 /// Category identifier.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct CategoryId(pub String);
+pub struct CategoryId(pub Cow<'static, str>);
+
+impl std::fmt::Display for CategoryId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 impl CategoryId {
     /// Creates a new category ID.
     #[must_use]
     pub fn new(id: impl Into<String>) -> Self {
-        Self(id.into())
+        Self(Cow::Owned(id.into()))
+    }
+
+    /// Creates a category ID from a static string slice (zero-copy).
+    #[must_use]
+    pub fn from_static(id: &'static str) -> Self {
+        Self(Cow::Borrowed(id))
     }
 }
 
 /// Unique SKU (Stock Keeping Unit).
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Sku(pub String);
+pub struct Sku(pub Cow<'static, str>);
+
+impl std::fmt::Display for Sku {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 impl Sku {
     /// Creates a new SKU.
     #[must_use]
     pub fn new(sku: impl Into<String>) -> Self {
-        Self(sku.into())
+        Self(Cow::Owned(sku.into()))
+    }
+
+    /// Creates a SKU from a static string slice (zero-copy).
+    #[must_use]
+    pub fn from_static(sku: &'static str) -> Self {
+        Self(Cow::Borrowed(sku))
     }
 }
 
@@ -147,7 +178,7 @@ impl Currency {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Price {
     /// Amount in smallest currency unit (cents, satoshi, etc.).
-    pub amount: u64,
+    pub amount:   u64,
     /// Currency code.
     pub currency: Currency,
     /// Number of decimal places.
@@ -181,8 +212,8 @@ impl Price {
     pub fn add(&self, other: &Price) -> Result<Price, CommerceError> {
         if self.currency != other.currency {
             return Err(CommerceError::CurrencyMismatch {
-                expected: self.currency.0.clone(),
-                got: other.currency.0.clone(),
+                expected: self.currency.0.to_string(),
+                got:      other.currency.0.to_string(),
             });
         }
         Ok(Price::new(
@@ -207,11 +238,11 @@ impl Default for Price {
 #[derive(Debug, Clone, Default)]
 pub struct ProductDimensions {
     /// Length in centimeters.
-    pub length_cm: f32,
+    pub length_cm:    f32,
     /// Width in centimeters.
-    pub width_cm: f32,
+    pub width_cm:     f32,
     /// Height in centimeters.
-    pub height_cm: f32,
+    pub height_cm:    f32,
     /// Weight in grams.
     pub weight_grams: u32,
 }
@@ -234,17 +265,17 @@ impl ProductDimensions {
 #[derive(Debug, Clone)]
 pub struct ProductImage {
     /// Image URL or content hash.
-    pub url: String,
+    pub url:        String,
     /// Alternative text for accessibility.
-    pub alt_text: String,
+    pub alt_text:   String,
     /// Sort order in gallery.
     pub sort_order: u32,
     /// Whether this is the main product image.
     pub is_primary: bool,
     /// Image width in pixels.
-    pub width: Option<u32>,
+    pub width:      Option<u32>,
     /// Image height in pixels.
-    pub height: Option<u32>,
+    pub height:     Option<u32>,
 }
 
 impl ProductImage {
@@ -252,12 +283,12 @@ impl ProductImage {
     #[must_use]
     pub fn new(url: impl Into<String>, alt_text: impl Into<String>) -> Self {
         Self {
-            url: url.into(),
-            alt_text: alt_text.into(),
+            url:        url.into(),
+            alt_text:   alt_text.into(),
             sort_order: 0,
             is_primary: false,
-            width: None,
-            height: None,
+            width:      None,
+            height:     None,
         }
     }
 
@@ -273,11 +304,11 @@ impl ProductImage {
 #[derive(Debug, Clone)]
 pub struct ProductAttribute {
     /// Attribute name (e.g., "Color", "Size").
-    pub name: String,
+    pub name:              String,
     /// Attribute value.
-    pub value: String,
+    pub value:             String,
     /// Whether this affects pricing.
-    pub affects_pricing: bool,
+    pub affects_pricing:   bool,
     /// Whether this affects inventory.
     pub affects_inventory: bool,
 }
@@ -287,9 +318,9 @@ impl ProductAttribute {
     #[must_use]
     pub fn new(name: impl Into<String>, value: impl Into<String>) -> Self {
         Self {
-            name: name.into(),
-            value: value.into(),
-            affects_pricing: false,
+            name:              name.into(),
+            value:             value.into(),
+            affects_pricing:   false,
             affects_inventory: false,
         }
     }
@@ -299,19 +330,19 @@ impl ProductAttribute {
 #[derive(Debug, Clone)]
 pub struct ProductVariant {
     /// Variant ID.
-    pub id: ProductId,
+    pub id:              ProductId,
     /// Parent product ID.
-    pub parent_id: ProductId,
+    pub parent_id:       ProductId,
     /// Variant SKU.
-    pub sku: Sku,
+    pub sku:             Sku,
     /// Attributes that define this variant.
-    pub attributes: Vec<ProductAttribute>,
+    pub attributes:      Vec<ProductAttribute>,
     /// Variant-specific price (if different from parent).
-    pub price_override: Option<Price>,
+    pub price_override:  Option<Price>,
     /// Variant-specific inventory count.
     pub inventory_count: i64,
     /// Whether variant is active.
-    pub is_active: bool,
+    pub is_active:       bool,
 }
 
 impl ProductVariant {
@@ -338,23 +369,23 @@ impl ProductVariant {
 #[derive(Debug, Clone)]
 pub struct Category {
     /// Category ID.
-    pub id: CategoryId,
+    pub id:               CategoryId,
     /// Category name.
-    pub name: String,
+    pub name:             String,
     /// Category description.
-    pub description: String,
+    pub description:      String,
     /// Parent category (if not root).
-    pub parent_id: Option<CategoryId>,
+    pub parent_id:        Option<CategoryId>,
     /// URL slug for the category.
-    pub slug: String,
+    pub slug:             String,
     /// Sort order within parent.
-    pub sort_order: u32,
+    pub sort_order:       u32,
     /// Whether category is visible.
-    pub is_active: bool,
+    pub is_active:        bool,
     /// Category image URL.
-    pub image_url: Option<String>,
+    pub image_url:        Option<String>,
     /// SEO meta title.
-    pub meta_title: Option<String>,
+    pub meta_title:       Option<String>,
     /// SEO meta description.
     pub meta_description: Option<String>,
 }
@@ -395,65 +426,65 @@ impl Category {
 #[derive(Debug, Clone)]
 pub struct Product {
     /// Product ID.
-    pub id: ProductId,
+    pub id:                  ProductId,
     /// Product SKU.
-    pub sku: Sku,
+    pub sku:                 Sku,
     /// Product name.
-    pub name: String,
+    pub name:                String,
     /// Product description.
-    pub description: String,
+    pub description:         String,
     /// Short description for listings.
-    pub short_description: String,
+    pub short_description:   String,
     /// Product type.
-    pub product_type: ProductType,
+    pub product_type:        ProductType,
     /// Product status.
-    pub status: ProductStatus,
+    pub status:              ProductStatus,
     /// Base price.
-    pub price: Price,
+    pub price:               Price,
     /// Sale/promotional price.
-    pub sale_price: Option<Price>,
+    pub sale_price:          Option<Price>,
     /// Cost price (for profit calculation).
-    pub cost_price: Option<Price>,
+    pub cost_price:          Option<Price>,
     /// Category IDs.
-    pub categories: Vec<CategoryId>,
+    pub categories:          Vec<CategoryId>,
     /// Product images.
-    pub images: Vec<ProductImage>,
+    pub images:              Vec<ProductImage>,
     /// Product attributes.
-    pub attributes: Vec<ProductAttribute>,
+    pub attributes:          Vec<ProductAttribute>,
     /// Product variants.
-    pub variants: Vec<ProductVariant>,
+    pub variants:            Vec<ProductVariant>,
     /// Physical dimensions.
-    pub dimensions: Option<ProductDimensions>,
+    pub dimensions:          Option<ProductDimensions>,
     /// URL slug.
-    pub slug: String,
+    pub slug:                String,
     /// SEO meta title.
-    pub meta_title: Option<String>,
+    pub meta_title:          Option<String>,
     /// SEO meta description.
-    pub meta_description: Option<String>,
+    pub meta_description:    Option<String>,
     /// Related product IDs.
-    pub related_products: Vec<ProductId>,
+    pub related_products:    Vec<ProductId>,
     /// Cross-sell product IDs.
     pub cross_sell_products: Vec<ProductId>,
     /// Tags for search.
-    pub tags: Vec<String>,
+    pub tags:                Vec<String>,
     /// Whether product is featured.
-    pub is_featured: bool,
+    pub is_featured:         bool,
     /// Whether product is taxable.
-    pub is_taxable: bool,
+    pub is_taxable:          bool,
     /// Tax class identifier.
-    pub tax_class: Option<String>,
+    pub tax_class:           Option<String>,
     /// Inventory quantity (for simple products).
-    pub inventory_quantity: i64,
+    pub inventory_quantity:  i64,
     /// Low stock threshold.
     pub low_stock_threshold: u32,
     /// Whether backorders are allowed.
-    pub backorders_allowed: bool,
+    pub backorders_allowed:  bool,
     /// Vendor/seller ID.
-    pub vendor_id: Option<String>,
+    pub vendor_id:           Option<String>,
     /// Creation timestamp.
-    pub created_at: u64,
+    pub created_at:          u64,
     /// Last update timestamp.
-    pub updated_at: u64,
+    pub updated_at:          u64,
 }
 
 impl Product {
@@ -522,7 +553,8 @@ impl Product {
     /// Checks if product is low on stock.
     #[must_use]
     pub fn is_low_stock(&self) -> bool {
-        self.inventory_quantity > 0 && self.inventory_quantity <= i64::from(self.low_stock_threshold)
+        self.inventory_quantity > 0
+            && self.inventory_quantity <= i64::from(self.low_stock_threshold)
     }
 
     /// Gets the primary image.
@@ -554,27 +586,27 @@ impl Product {
 #[derive(Debug, Clone, Default)]
 pub struct ProductFilter {
     /// Filter by category IDs.
-    pub categories: Vec<CategoryId>,
+    pub categories:    Vec<CategoryId>,
     /// Filter by status.
-    pub status: Option<ProductStatus>,
+    pub status:        Option<ProductStatus>,
     /// Filter by product type.
-    pub product_type: Option<ProductType>,
+    pub product_type:  Option<ProductType>,
     /// Minimum price filter.
-    pub min_price: Option<u64>,
+    pub min_price:     Option<u64>,
     /// Maximum price filter.
-    pub max_price: Option<u64>,
+    pub max_price:     Option<u64>,
     /// Filter by tags.
-    pub tags: Vec<String>,
+    pub tags:          Vec<String>,
     /// Filter by vendor ID.
-    pub vendor_id: Option<String>,
+    pub vendor_id:     Option<String>,
     /// Only featured products.
     pub featured_only: bool,
     /// Only in-stock products.
     pub in_stock_only: bool,
     /// Only products on sale.
-    pub on_sale_only: bool,
+    pub on_sale_only:  bool,
     /// Text search query.
-    pub search_query: Option<String>,
+    pub search_query:  Option<String>,
 }
 
 impl ProductFilter {
@@ -638,15 +670,15 @@ pub enum ProductSortOrder {
 #[derive(Debug, Clone)]
 pub struct PaginatedProducts {
     /// Products in this page.
-    pub products: Vec<Product>,
+    pub products:    Vec<Product>,
     /// Total count of matching products.
     pub total_count: usize,
     /// Current page number (0-indexed).
-    pub page: usize,
+    pub page:        usize,
     /// Items per page.
-    pub page_size: usize,
+    pub page_size:   usize,
     /// Whether there are more pages.
-    pub has_next: bool,
+    pub has_next:    bool,
 }
 
 impl PaginatedProducts {
@@ -668,11 +700,11 @@ impl PaginatedProducts {
 #[derive(Debug)]
 pub struct ProductCatalog {
     /// Products indexed by ID.
-    products: Arc<Mutex<HashMap<ProductId, Product>>>,
+    products:          Arc<Mutex<HashMap<ProductId, Product>>>,
     /// Products indexed by SKU.
-    products_by_sku: Arc<Mutex<HashMap<Sku, ProductId>>>,
+    products_by_sku:   Arc<Mutex<HashMap<Sku, ProductId>>>,
     /// Categories indexed by ID.
-    categories: Arc<Mutex<HashMap<CategoryId, Category>>>,
+    categories:        Arc<Mutex<HashMap<CategoryId, Category>>>,
     /// Category hierarchy (parent -> children).
     category_children: Arc<Mutex<HashMap<CategoryId, Vec<CategoryId>>>>,
 }
@@ -682,9 +714,9 @@ impl ProductCatalog {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            products: Arc::new(Mutex::new(HashMap::new())),
-            products_by_sku: Arc::new(Mutex::new(HashMap::new())),
-            categories: Arc::new(Mutex::new(HashMap::new())),
+            products:          Arc::new(Mutex::new(HashMap::new())),
+            products_by_sku:   Arc::new(Mutex::new(HashMap::new())),
+            categories:        Arc::new(Mutex::new(HashMap::new())),
             category_children: Arc::new(Mutex::new(HashMap::new())),
         }
     }
@@ -702,7 +734,9 @@ impl ProductCatalog {
         let mut children = self.category_children.lock().map_err(|_| CommerceError::LockError)?;
 
         if categories.contains_key(&category.id) {
-            return Err(CommerceError::CategoryAlreadyExists(category.id.0.clone()));
+            return Err(CommerceError::CategoryAlreadyExists(
+                category.id.0.to_string(),
+            ));
         }
 
         // Update parent's children list
@@ -726,29 +760,24 @@ impl ProductCatalog {
         categories
             .get(id)
             .cloned()
-            .ok_or_else(|| CommerceError::CategoryNotFound(id.0.clone()))
+            .ok_or_else(|| CommerceError::CategoryNotFound(id.0.to_string()))
     }
 
     /// Gets all root categories.
     pub fn get_root_categories(&self) -> Result<Vec<Category>, CommerceError> {
         let categories = self.categories.lock().map_err(|_| CommerceError::LockError)?;
-        Ok(categories
-            .values()
-            .filter(|c| c.parent_id.is_none())
-            .cloned()
-            .collect())
+        Ok(categories.values().filter(|c| c.parent_id.is_none()).cloned().collect())
     }
 
     /// Gets child categories.
-    pub fn get_child_categories(&self, parent_id: &CategoryId) -> Result<Vec<Category>, CommerceError> {
+    pub fn get_child_categories(
+        &self, parent_id: &CategoryId,
+    ) -> Result<Vec<Category>, CommerceError> {
         let categories = self.categories.lock().map_err(|_| CommerceError::LockError)?;
         let children = self.category_children.lock().map_err(|_| CommerceError::LockError)?;
 
         let child_ids = children.get(parent_id).cloned().unwrap_or_default();
-        Ok(child_ids
-            .iter()
-            .filter_map(|id| categories.get(id).cloned())
-            .collect())
+        Ok(child_ids.iter().filter_map(|id| categories.get(id).cloned()).collect())
     }
 
     // ========================================================================
@@ -764,11 +793,13 @@ impl ProductCatalog {
         let mut by_sku = self.products_by_sku.lock().map_err(|_| CommerceError::LockError)?;
 
         if products.contains_key(&product.id) {
-            return Err(CommerceError::ProductAlreadyExists(product.id.0.clone()));
+            return Err(CommerceError::ProductAlreadyExists(
+                product.id.0.to_string(),
+            ));
         }
 
         if by_sku.contains_key(&product.sku) {
-            return Err(CommerceError::SkuAlreadyExists(product.sku.0.clone()));
+            return Err(CommerceError::SkuAlreadyExists(product.sku.0.to_string()));
         }
 
         by_sku.insert(product.sku.clone(), product.id.clone());
@@ -785,7 +816,7 @@ impl ProductCatalog {
         products
             .get(id)
             .cloned()
-            .ok_or_else(|| CommerceError::ProductNotFound(id.0.clone()))
+            .ok_or_else(|| CommerceError::ProductNotFound(id.0.to_string()))
     }
 
     /// Gets a product by SKU.
@@ -798,11 +829,11 @@ impl ProductCatalog {
 
         let id = by_sku
             .get(sku)
-            .ok_or_else(|| CommerceError::ProductNotFound(sku.0.clone()))?;
+            .ok_or_else(|| CommerceError::ProductNotFound(sku.0.to_string()))?;
         products
             .get(id)
             .cloned()
-            .ok_or_else(|| CommerceError::ProductNotFound(id.0.clone()))
+            .ok_or_else(|| CommerceError::ProductNotFound(id.0.to_string()))
     }
 
     /// Updates a product.
@@ -813,7 +844,7 @@ impl ProductCatalog {
         let mut products = self.products.lock().map_err(|_| CommerceError::LockError)?;
 
         if !products.contains_key(&product.id) {
-            return Err(CommerceError::ProductNotFound(product.id.0.clone()));
+            return Err(CommerceError::ProductNotFound(product.id.0.to_string()));
         }
 
         products.insert(product.id.clone(), product);
@@ -830,27 +861,20 @@ impl ProductCatalog {
 
         let product = products
             .remove(id)
-            .ok_or_else(|| CommerceError::ProductNotFound(id.0.clone()))?;
+            .ok_or_else(|| CommerceError::ProductNotFound(id.0.to_string()))?;
         by_sku.remove(&product.sku);
         Ok(product)
     }
 
     /// Searches products with filters.
     pub fn search_products(
-        &self,
-        filter: &ProductFilter,
-        sort: ProductSortOrder,
-        page: usize,
-        page_size: usize,
+        &self, filter: &ProductFilter, sort: ProductSortOrder, page: usize, page_size: usize,
     ) -> Result<PaginatedProducts, CommerceError> {
         let products = self.products.lock().map_err(|_| CommerceError::LockError)?;
 
         // Filter products
-        let mut filtered: Vec<Product> = products
-            .values()
-            .filter(|p| self.matches_filter(p, filter))
-            .cloned()
-            .collect();
+        let mut filtered: Vec<Product> =
+            products.values().filter(|p| self.matches_filter(p, filter)).cloned().collect();
 
         let total_count = filtered.len();
 
@@ -877,9 +901,7 @@ impl ProductCatalog {
 
     /// Gets products in a category.
     pub fn get_products_by_category(
-        &self,
-        category_id: &CategoryId,
-        include_subcategories: bool,
+        &self, category_id: &CategoryId, include_subcategories: bool,
     ) -> Result<Vec<Product>, CommerceError> {
         let products = self.products.lock().map_err(|_| CommerceError::LockError)?;
 
@@ -925,7 +947,9 @@ impl ProductCatalog {
     }
 
     /// Gets related products.
-    pub fn get_related_products(&self, product_id: &ProductId) -> Result<Vec<Product>, CommerceError> {
+    pub fn get_related_products(
+        &self, product_id: &ProductId,
+    ) -> Result<Vec<Product>, CommerceError> {
         let product = self.get_product(product_id)?;
         let products = self.products.lock().map_err(|_| CommerceError::LockError)?;
 
@@ -974,7 +998,11 @@ impl ProductCatalog {
         }
 
         // Vendor filter
-        if filter.vendor_id.as_ref().is_some_and(|vendor_id| product.vendor_id.as_ref() != Some(vendor_id)) {
+        if filter
+            .vendor_id
+            .as_ref()
+            .is_some_and(|vendor_id| product.vendor_id.as_ref() != Some(vendor_id))
+        {
             return false;
         }
 
@@ -1012,28 +1040,32 @@ impl ProductCatalog {
         match sort {
             ProductSortOrder::Newest => {
                 products.sort_by(|a, b| b.created_at.cmp(&a.created_at));
-            }
+            },
             ProductSortOrder::PriceAsc => {
-                products.sort_by(|a, b| a.effective_price().amount.cmp(&b.effective_price().amount));
-            }
+                products
+                    .sort_by(|a, b| a.effective_price().amount.cmp(&b.effective_price().amount));
+            },
             ProductSortOrder::PriceDesc => {
-                products.sort_by(|a, b| b.effective_price().amount.cmp(&a.effective_price().amount));
-            }
+                products
+                    .sort_by(|a, b| b.effective_price().amount.cmp(&a.effective_price().amount));
+            },
             ProductSortOrder::NameAsc => {
                 products.sort_by(|a, b| a.name.cmp(&b.name));
-            }
+            },
             ProductSortOrder::BestSelling | ProductSortOrder::TopRated => {
                 // Would require sales/rating data - for now, sort by created date
                 products.sort_by(|a, b| b.created_at.cmp(&a.created_at));
-            }
+            },
             ProductSortOrder::Featured => {
                 products.sort_by(|a, b| b.is_featured.cmp(&a.is_featured));
-            }
+            },
         }
     }
 
     /// Gets all descendant category IDs.
-    fn get_descendant_categories(&self, category_id: &CategoryId) -> Result<Vec<CategoryId>, CommerceError> {
+    fn get_descendant_categories(
+        &self, category_id: &CategoryId,
+    ) -> Result<Vec<CategoryId>, CommerceError> {
         let children = self.category_children.lock().map_err(|_| CommerceError::LockError)?;
 
         let mut result = vec![category_id.clone()];
@@ -1100,7 +1132,8 @@ mod tests {
 
         catalog.add_product(product).expect("should add product");
 
-        let retrieved = catalog.get_product(&ProductId::new("prod-001")).expect("should get product");
+        let retrieved =
+            catalog.get_product(&ProductId::new("prod-001")).expect("should get product");
         assert_eq!(retrieved.name, "Test Product");
     }
 
@@ -1108,11 +1141,7 @@ mod tests {
     fn test_catalog_duplicate_sku() {
         let catalog = ProductCatalog::new();
 
-        let product1 = Product::new(
-            ProductId::new("prod-001"),
-            Sku::new("SKU-001"),
-            "Product 1",
-        );
+        let product1 = Product::new(ProductId::new("prod-001"), Sku::new("SKU-001"), "Product 1");
         let product2 = Product::new(
             ProductId::new("prod-002"),
             Sku::new("SKU-001"), // Same SKU
@@ -1135,7 +1164,9 @@ mod tests {
         catalog.add_category(root).expect("should add root");
         catalog.add_category(child).expect("should add child");
 
-        let children = catalog.get_child_categories(&CategoryId::new("cat-root")).expect("should get children");
+        let children = catalog
+            .get_child_categories(&CategoryId::new("cat-root"))
+            .expect("should get children");
         assert_eq!(children.len(), 1);
         assert_eq!(children[0].name, "Phones");
     }
@@ -1144,11 +1175,8 @@ mod tests {
     fn test_product_search() {
         let catalog = ProductCatalog::new();
 
-        let mut product1 = Product::new(
-            ProductId::new("prod-001"),
-            Sku::new("SKU-001"),
-            "iPhone 15",
-        );
+        let mut product1 =
+            Product::new(ProductId::new("prod-001"), Sku::new("SKU-001"), "iPhone 15");
         product1.status = ProductStatus::Active;
         product1.price = Price::new(99900, Currency::usd(), 2);
 
@@ -1164,7 +1192,8 @@ mod tests {
         catalog.add_product(product2).expect("add product2");
 
         let filter = ProductFilter::new().with_status(ProductStatus::Active);
-        let results = catalog.search_products(&filter, ProductSortOrder::PriceAsc, 0, 10)
+        let results = catalog
+            .search_products(&filter, ProductSortOrder::PriceAsc, 0, 10)
             .expect("search should succeed");
 
         assert_eq!(results.total_count, 2);
@@ -1197,5 +1226,3 @@ mod tests {
         assert!(!ProductStatus::Draft.is_visible());
     }
 }
-
-
