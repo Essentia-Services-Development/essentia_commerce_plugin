@@ -10,7 +10,7 @@ use std::{
 
 use crate::{
     errors::CommerceError,
-    r#impl::product_catalog::{Currency, Price, Product, ProductId},
+    types::product_catalog::{Currency, Price, Product, ProductId},
 };
 
 // ============================================================================
@@ -937,7 +937,7 @@ impl Default for CartService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::r#impl::product_catalog::{Product, ProductId, ProductStatus, Sku};
+    use crate::types::product_catalog::{Product, ProductId, ProductStatus, Sku};
 
     fn create_test_product(id: &str, price: u64) -> Product {
         let mut product = Product::new(

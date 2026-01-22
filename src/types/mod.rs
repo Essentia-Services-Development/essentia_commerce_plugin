@@ -82,3 +82,5 @@ impl Default for CommerceConfig {
     }
 }
 
+pub mod inventory_sync;
+pub mod product_catalog;
