@@ -9,11 +9,11 @@ use crate::errors::MarketplaceError;
 use crate::marketplace::{*, search::SearchIndex, escrow::EscrowManager};
 
 /// Placeholder for VCS payment service
-/// TODO: Integrate with CR-108-F2 Bitcoin/Lightning payments
+/// TODO(PAYMENT): Integrate with CR-108-F2 Bitcoin/Lightning payments
 pub struct VcsPaymentService;
 
 /// Main marketplace service
-#[allow(dead_code)] // TODO: Remove when all fields are used
+#[allow(dead_code)] // TODO(BACKLOG): Remove when all fields are used
 pub struct MarketplaceService {
     /// All listings (indexed by ID)
     listings: HashMap<ListingId, MarketplaceListing>,
@@ -140,4 +140,3 @@ impl MarketplaceService {
         Ok(())
     }
 }
-
