@@ -21,7 +21,5 @@ pub mod traits;
 pub mod types;
 
 // Re-exports for public API
-pub use r#impl::*;
-pub use marketplace::*;
-pub use types::*;
-
+pub use r#impl::CommerceFlexForgeIntegration;
+pub use types::{CommerceConfig, GenesisDirectory};

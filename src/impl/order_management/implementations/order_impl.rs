@@ -7,10 +7,6 @@ use super::super::types::order_types::{OrderLineItem, PaymentTransaction, Shipme
 use super::super::types::basic_types::{OrderId, OrderStatus, PaymentStatus, FulfillmentStatus};
 use crate::r#impl::cart_system::{Cart, ShippingMethod};
 
-/// Implementation of Order business logic.
-pub mod order_impl {
-    use super::*;
-
     impl Order {
         /// Creates an order from a cart.
         #[must_use]
@@ -214,4 +210,3 @@ pub mod order_impl {
                 .unwrap_or(0);
         }
     }
-}

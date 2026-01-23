@@ -12,10 +12,6 @@ use super::super::types::service_types::{OrderService, OrderFilter};
 use crate::r#impl::cart_system::Cart;
 use crate::errors::CommerceError;
 
-/// Implementation of OrderService business logic.
-pub mod service_impl {
-    use super::*;
-
     impl OrderService {
         /// Creates a new order service.
         #[must_use]
@@ -179,4 +175,3 @@ pub mod service_impl {
             Self::new()
         }
     }
-}
