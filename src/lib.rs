@@ -12,6 +12,7 @@
 #![allow(missing_docs)]
 #![allow(clippy::doc_markdown)]
 #![allow(clippy::collapsible_if)]
+#![allow(clippy::unnecessary_sort_by)]
 #![allow(clippy::missing_panics_doc)]
 
 pub mod errors;
