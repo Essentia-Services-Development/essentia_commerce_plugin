@@ -1,0 +1,27 @@
+[package]
+name = "essentia_commerce_plugin"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
+publish.workspace = true
+description = "Decentralized E-Commerce & Affiliate Platform Plugin"
+
+[features]
+full-tests = []
+
+[dependencies]
+essentia_core     = { workspace = true }
+essentia_api     = { workspace = true }
+essentia_traits     = { workspace = true }
+essentia_error     = { workspace = true }
+essentia_uuid     = { workspace = true }
+essentia_payment_plugin     = { workspace = true }
+essentia_blockchain_plugin     = { workspace = true }
+essentia_time     = { workspace = true }
+
+
