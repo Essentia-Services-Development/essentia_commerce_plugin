@@ -12,6 +12,12 @@ impl OrderId {
     }
 }
 
+impl Default for OrderId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// A marketplace order
 #[derive(Debug, Clone)]
 pub struct Order {

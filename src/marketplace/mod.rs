@@ -31,6 +31,12 @@ impl ListingId {
     }
 }
 
+impl Default for ListingId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Category of marketplace listing
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ListingCategory {

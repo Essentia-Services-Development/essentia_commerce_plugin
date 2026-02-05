@@ -26,6 +26,12 @@ impl EscrowId {
     }
 }
 
+impl Default for EscrowId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Escrow account
 #[derive(Debug, Clone)]
 pub struct EscrowAccount {
@@ -92,6 +98,7 @@ pub enum EscrowStatus {
 }
 
 /// Escrow manager service
+#[derive(Default)]
 pub struct EscrowManager {
     /// Active escrow accounts
     escrows:           HashMap<EscrowId, EscrowAccount>,
@@ -384,16 +391,6 @@ impl EscrowManager {
             }
         }
         true
-    }
-}
-
-impl Default for EscrowManager {
-    fn default() -> Self {
-        Self {
-            escrows:           HashMap::new(),
-            escrows_by_order:  HashMap::new(),
-            blockchain_plugin: None,
-        }
     }
 }
 
