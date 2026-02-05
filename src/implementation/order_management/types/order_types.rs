@@ -1,13 +1,15 @@
 //! # Order Management Types - Order Types
 //!
-//! Type definitions for order-related structures including line items, payments, shipments, and history.
+//! Type definitions for order-related structures including line items,
+//! payments, shipments, and history.
 
 use std::collections::HashMap;
 
-use crate::types::product_catalog::{Price, ProductId, Currency};
-use crate::implementation::cart_system::{CartItem, ShippingAddress};
-
 use super::basic_types::OrderStatus;
+use crate::{
+    implementation::cart_system::{CartItem, ShippingAddress},
+    types::product_catalog::{Currency, Price, ProductId},
+};
 
 // ============================================================================
 // ORDER LINE ITEM
@@ -17,39 +19,39 @@ use super::basic_types::OrderStatus;
 #[derive(Debug, Clone)]
 pub struct OrderLineItem {
     /// Line item ID.
-    pub id: String,
+    pub id:                 String,
     /// Product ID.
-    pub product_id: ProductId,
+    pub product_id:         ProductId,
     /// Variant ID.
-    pub variant_id: Option<ProductId>,
+    pub variant_id:         Option<ProductId>,
     /// Product name.
-    pub name: String,
+    pub name:               String,
     /// SKU.
-    pub sku: String,
+    pub sku:                String,
     /// Quantity ordered.
-    pub quantity: u32,
+    pub quantity:           u32,
     /// Quantity fulfilled.
     pub quantity_fulfilled: u32,
     /// Quantity refunded.
-    pub quantity_refunded: u32,
+    pub quantity_refunded:  u32,
     /// Unit price.
-    pub unit_price: Price,
+    pub unit_price:         Price,
     /// Total before discount.
-    pub subtotal: u64,
+    pub subtotal:           u64,
     /// Discount amount.
-    pub discount: u64,
+    pub discount:           u64,
     /// Tax amount.
-    pub tax: u64,
+    pub tax:                u64,
     /// Line total.
-    pub total: u64,
+    pub total:              u64,
     /// Product image URL.
-    pub image_url: Option<String>,
+    pub image_url:          Option<String>,
     /// Whether item is taxable.
-    pub taxable: bool,
+    pub taxable:            bool,
     /// Whether item requires shipping.
-    pub requires_shipping: bool,
+    pub requires_shipping:  bool,
     /// Custom properties.
-    pub properties: HashMap<String, String>,
+    pub properties:         HashMap<String, String>,
 }
 
 impl OrderLineItem {
@@ -79,7 +81,11 @@ impl OrderLineItem {
             image_url: item.image_url.as_ref().map(|url| url.to_string()),
             taxable: true,
             requires_shipping: true,
-            properties: item.custom_options.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect(),
+            properties: item
+                .custom_options
+                .iter()
+                .map(|(k, v)| (k.to_string(), v.to_string()))
+                .collect(),
         }
     }
 
@@ -130,17 +136,17 @@ impl TransactionStatus {
 #[derive(Debug, Clone)]
 pub struct PaymentMethod {
     /// Method identifier.
-    pub id: String,
+    pub id:             String,
     /// Method type (card, crypto, etc).
-    pub method_type: String,
+    pub method_type:    String,
     /// Last 4 digits (for cards).
-    pub last_four: Option<String>,
+    pub last_four:      Option<String>,
     /// Card brand (Visa, Mastercard, etc).
-    pub brand: Option<String>,
+    pub brand:          Option<String>,
     /// Expiry month.
-    pub exp_month: Option<u32>,
+    pub exp_month:      Option<u32>,
     /// Expiry year.
-    pub exp_year: Option<u32>,
+    pub exp_year:       Option<u32>,
     /// Wallet address (for crypto).
     pub wallet_address: Option<String>,
 }
@@ -149,25 +155,25 @@ pub struct PaymentMethod {
 #[derive(Debug, Clone)]
 pub struct PaymentTransaction {
     /// Transaction ID.
-    pub id: String,
+    pub id:               String,
     /// External transaction reference.
-    pub external_id: Option<String>,
+    pub external_id:      Option<String>,
     /// Transaction type.
     pub transaction_type: TransactionType,
     /// Amount.
-    pub amount: u64,
+    pub amount:           u64,
     /// Currency.
-    pub currency: Currency,
+    pub currency:         Currency,
     /// Status.
-    pub status: TransactionStatus,
+    pub status:           TransactionStatus,
     /// Gateway used.
-    pub gateway: String,
+    pub gateway:          String,
     /// Payment method.
-    pub payment_method: Option<PaymentMethod>,
+    pub payment_method:   Option<PaymentMethod>,
     /// Error message if failed.
-    pub error_message: Option<String>,
+    pub error_message:    Option<String>,
     /// Timestamp.
-    pub created_at: u64,
+    pub created_at:       u64,
 }
 
 /// Transaction type.
@@ -191,25 +197,25 @@ pub enum TransactionType {
 #[derive(Debug, Clone)]
 pub struct Shipment {
     /// Shipment ID.
-    pub id: String,
+    pub id:               String,
     /// Carrier name.
-    pub carrier: String,
+    pub carrier:          String,
     /// Tracking number.
-    pub tracking_number: Option<String>,
+    pub tracking_number:  Option<String>,
     /// Tracking URL.
-    pub tracking_url: Option<String>,
+    pub tracking_url:     Option<String>,
     /// Shipment status.
-    pub status: ShipmentStatus,
+    pub status:           ShipmentStatus,
     /// Items in this shipment.
-    pub items: Vec<ShipmentItem>,
+    pub items:            Vec<ShipmentItem>,
     /// Shipping address.
     pub shipping_address: ShippingAddress,
     /// Shipped date.
-    pub shipped_at: Option<u64>,
+    pub shipped_at:       Option<u64>,
     /// Delivered date.
-    pub delivered_at: Option<u64>,
+    pub delivered_at:     Option<u64>,
     /// Creation date.
-    pub created_at: u64,
+    pub created_at:       u64,
 }
 
 /// Shipment status.
@@ -240,7 +246,7 @@ pub struct ShipmentItem {
     /// Line item ID.
     pub line_item_id: String,
     /// Quantity shipped.
-    pub quantity: u32,
+    pub quantity:     u32,
 }
 
 // ============================================================================
@@ -251,15 +257,15 @@ pub struct ShipmentItem {
 #[derive(Debug, Clone)]
 pub struct OrderNote {
     /// Note ID.
-    pub id: String,
+    pub id:               String,
     /// Note content.
-    pub content: String,
+    pub content:          String,
     /// Whether visible to customer.
     pub customer_visible: bool,
     /// Author.
-    pub author: String,
+    pub author:           String,
     /// Creation timestamp.
-    pub created_at: u64,
+    pub created_at:       u64,
 }
 
 impl OrderNote {
@@ -272,11 +278,11 @@ impl OrderNote {
             .unwrap_or(0);
 
         Self {
-            id: format!("note-{}", now),
-            content: content.into(),
+            id:               format!("note-{}", now),
+            content:          content.into(),
             customer_visible: false,
-            author: author.into(),
-            created_at: now,
+            author:           author.into(),
+            created_at:       now,
         }
     }
 
@@ -293,19 +299,19 @@ impl OrderNote {
 #[derive(Debug, Clone)]
 pub struct OrderHistoryEvent {
     /// Event ID.
-    pub id: String,
+    pub id:              String,
     /// Event type.
-    pub event_type: OrderEventType,
+    pub event_type:      OrderEventType,
     /// Event description.
-    pub description: String,
+    pub description:     String,
     /// Previous status (for status changes).
     pub previous_status: Option<OrderStatus>,
     /// New status (for status changes).
-    pub new_status: Option<OrderStatus>,
+    pub new_status:      Option<OrderStatus>,
     /// User who triggered the event.
-    pub user: Option<String>,
+    pub user:            Option<String>,
     /// Timestamp.
-    pub created_at: u64,
+    pub created_at:      u64,
 }
 
 /// Order event type.

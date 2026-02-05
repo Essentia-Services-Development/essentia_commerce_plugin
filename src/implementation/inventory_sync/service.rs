@@ -8,8 +8,12 @@ use std::{
     time::SystemTime,
 };
 
-use crate::{errors::CommerceError, types::product_catalog::ProductId, types::inventory_sync::*};
 use essentia_time::Instant;
+
+use crate::{
+    errors::CommerceError,
+    types::{inventory_sync::*, product_catalog::ProductId},
+};
 
 impl InventoryService {
     /// Creates a new inventory service.

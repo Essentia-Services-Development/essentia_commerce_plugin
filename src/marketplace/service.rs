@@ -2,11 +2,12 @@
 //!
 //! Core marketplace service for managing listings, orders, and transactions.
 
-use std::collections::HashMap;
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
-use crate::errors::MarketplaceError;
-use crate::marketplace::{*, search::SearchIndex, escrow::EscrowManager};
+use crate::{
+    errors::MarketplaceError,
+    marketplace::{escrow::EscrowManager, search::SearchIndex, *},
+};
 
 /// Placeholder for VCS payment service
 /// TODO(PAYMENT): Integrate with CR-108-F2 Bitcoin/Lightning payments
@@ -16,23 +17,23 @@ pub struct VcsPaymentService;
 #[allow(dead_code)] // TODO(BACKLOG): Remove when all fields are used
 pub struct MarketplaceService {
     /// All listings (indexed by ID)
-    listings: HashMap<ListingId, MarketplaceListing>,
+    listings:             HashMap<ListingId, MarketplaceListing>,
     /// Listings by seller
-    listings_by_seller: HashMap<String, Vec<ListingId>>,
+    listings_by_seller:   HashMap<String, Vec<ListingId>>,
     /// Listings by category
     listings_by_category: HashMap<ListingCategory, Vec<ListingId>>,
     /// Active orders
-    orders: HashMap<orders::OrderId, orders::Order>,
+    orders:               HashMap<orders::OrderId, orders::Order>,
     /// Reviews
-    reviews: HashMap<reviews::ReviewId, reviews::Review>,
+    reviews:              HashMap<reviews::ReviewId, reviews::Review>,
     /// Seller profiles
-    sellers: HashMap<String, reviews::SellerProfile>,
+    sellers:              HashMap<String, reviews::SellerProfile>,
     /// Payment service reference
-    payment_service: Arc<VcsPaymentService>,
+    payment_service:      Arc<VcsPaymentService>,
     /// Search index
-    search_index: search::SearchIndex,
+    search_index:         search::SearchIndex,
     /// Escrow manager
-    escrow_manager: escrow::EscrowManager,
+    escrow_manager:       escrow::EscrowManager,
 }
 
 impl MarketplaceService {
@@ -53,9 +54,7 @@ impl MarketplaceService {
 
     /// Create a new listing
     pub fn create_listing(
-        &mut self,
-        seller: String,
-        listing: MarketplaceListing,
+        &mut self, seller: String, listing: MarketplaceListing,
     ) -> MarketplaceResult<ListingId> {
         // Validate seller has profile
         if !self.sellers.contains_key(&seller) {
@@ -68,16 +67,10 @@ impl MarketplaceService {
         let id = listing.id.clone();
 
         // Index by seller
-        self.listings_by_seller
-            .entry(seller.clone())
-            .or_default()
-            .push(id.clone());
+        self.listings_by_seller.entry(seller.clone()).or_default().push(id.clone());
 
         // Index by category
-        self.listings_by_category
-            .entry(listing.category)
-            .or_default()
-            .push(id.clone());
+        self.listings_by_category.entry(listing.category).or_default().push(id.clone());
 
         // Add to search index
         self.search_index.index_listing(&listing)?;
@@ -95,10 +88,7 @@ impl MarketplaceService {
 
     /// Search listings
     pub fn search(
-        &self,
-        query: &str,
-        filters: SearchFilters,
-        pagination: Pagination,
+        &self, query: &str, filters: SearchFilters, pagination: Pagination,
     ) -> MarketplaceResult<SearchResults> {
         let results = self.search_index.search(query, &filters)?;
 
@@ -124,7 +114,9 @@ impl MarketplaceService {
     }
 
     /// Get seller profile
-    pub fn get_seller_profile(&self, seller_id: &str) -> MarketplaceResult<&reviews::SellerProfile> {
+    pub fn get_seller_profile(
+        &self, seller_id: &str,
+    ) -> MarketplaceResult<&reviews::SellerProfile> {
         self.sellers.get(seller_id).ok_or(MarketplaceError::SellerNotFound)
     }
 

@@ -1,9 +1,9 @@
 //! Implementation details for the Commerce plugin
 
-pub mod product_catalog;
 pub mod cart_system;
-pub mod order_management;
 pub mod inventory_sync;
+pub mod order_management;
+pub mod product_catalog;
 
 use std::{
     fmt::Debug,

@@ -12,14 +12,14 @@ pub mod types {
     //! Type definitions for order management.
 
     pub mod basic_types;
-    pub mod order_types;
     pub mod main_order_types;
+    pub mod order_types;
     pub mod service_types;
 
     // Re-export commonly used types
     pub use basic_types::*;
-    pub use order_types::*;
     pub use main_order_types::*;
+    pub use order_types::*;
     pub use service_types::*;
 }
 
@@ -44,5 +44,5 @@ pub mod errors {
 }
 
 // Re-export main types for convenience
-pub use types::*;
 pub use implementations::*;
+pub use types::*;

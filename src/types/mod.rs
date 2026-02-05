@@ -3,6 +3,7 @@
 use std::fmt::Debug;
 
 use essentia_api::implementation::commerce::BusinessEntity;
+
 use crate::errors::CommerceError;
 
 /// Genesis Directory Node for commerce operations
@@ -25,9 +26,7 @@ impl GenesisDirectory {
     ///
     /// Returns `CommerceError::ValidationError` if the entity's coherence score
     /// is below the required threshold of 0.99.
-    pub fn register_business(
-        &mut self, entity: BusinessEntity,
-    ) -> Result<(), CommerceError> {
+    pub fn register_business(&mut self, entity: BusinessEntity) -> Result<(), CommerceError> {
         // Validate coherence score meets threshold
         if entity.coherence_score < 0.99 {
             return Err(CommerceError::ValidationError(format!(

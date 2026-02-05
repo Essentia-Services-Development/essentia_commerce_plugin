@@ -1,6 +1,7 @@
 //! # Order Management Types - Basic Types
 //!
-//! Core type definitions for order management including IDs, enums, and basic structs.
+//! Core type definitions for order management including IDs, enums, and basic
+//! structs.
 
 // ============================================================================
 // BASIC IDENTIFIERS
@@ -92,13 +93,19 @@ impl OrderStatus {
     /// Whether order is refundable.
     #[must_use]
     pub fn is_refundable(&self) -> bool {
-        matches!(self, Self::Processing | Self::Shipped | Self::Delivered | Self::Completed)
+        matches!(
+            self,
+            Self::Processing | Self::Shipped | Self::Delivered | Self::Completed
+        )
     }
 
     /// Whether order is in a final state.
     #[must_use]
     pub fn is_final(&self) -> bool {
-        matches!(self, Self::Completed | Self::Cancelled | Self::Refunded | Self::Failed)
+        matches!(
+            self,
+            Self::Completed | Self::Cancelled | Self::Refunded | Self::Failed
+        )
     }
 
     /// Display name.

@@ -4,8 +4,9 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::implementation::product_catalog::service::ProductCatalog;
-    use crate::types::product_catalog::*;
+    use crate::{
+        implementation::product_catalog::service::ProductCatalog, types::product_catalog::*,
+    };
 
     #[test]
     fn test_product_creation() {
@@ -121,7 +122,11 @@ mod tests {
         assert_eq!(product.effective_price().amount, 10000);
         assert!(!product.is_on_sale());
 
-        product.sale_price = Some(Price::new(7500, crate::types::product_catalog::Currency::usd(), 2));
+        product.sale_price = Some(Price::new(
+            7500,
+            crate::types::product_catalog::Currency::usd(),
+            2,
+        ));
         assert_eq!(product.effective_price().amount, 7500);
         assert!(product.is_on_sale());
     }

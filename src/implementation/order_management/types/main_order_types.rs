@@ -3,89 +3,93 @@
 //! This module contains the core Order struct and related types that define
 //! the complete order data model.
 
-use super::basic_types::{OrderId, OrderCustomerId, OrderStatus, PaymentStatus, FulfillmentStatus};
-use super::order_types::{OrderLineItem, Shipment, PaymentTransaction, OrderNote, OrderHistoryEvent};
-use crate::implementation::cart_system::{ShippingAddress, ShippingMethod};
-use crate::types::product_catalog::Currency;
+use super::{
+    basic_types::{FulfillmentStatus, OrderCustomerId, OrderId, OrderStatus, PaymentStatus},
+    order_types::{OrderHistoryEvent, OrderLineItem, OrderNote, PaymentTransaction, Shipment},
+};
+use crate::{
+    implementation::cart_system::{ShippingAddress, ShippingMethod},
+    types::product_catalog::Currency,
+};
 
 /// Complete order.
 #[derive(Debug, Clone)]
 pub struct Order {
     /// Order ID.
-    pub id: OrderId,
+    pub id:                 OrderId,
     /// Order number (display).
-    pub order_number: String,
+    pub order_number:       String,
     /// Customer ID.
-    pub customer_id: OrderCustomerId,
+    pub customer_id:        OrderCustomerId,
     /// Customer email.
-    pub customer_email: String,
+    pub customer_email:     String,
     /// Customer phone.
-    pub customer_phone: Option<String>,
+    pub customer_phone:     Option<String>,
     /// Order status.
-    pub status: OrderStatus,
+    pub status:             OrderStatus,
     /// Payment status.
-    pub payment_status: PaymentStatus,
+    pub payment_status:     PaymentStatus,
     /// Fulfillment status.
     pub fulfillment_status: FulfillmentStatus,
     /// Line items.
-    pub line_items: Vec<OrderLineItem>,
+    pub line_items:         Vec<OrderLineItem>,
     /// Shipping address.
-    pub shipping_address: ShippingAddress,
+    pub shipping_address:   ShippingAddress,
     /// Billing address.
-    pub billing_address: Option<ShippingAddress>,
+    pub billing_address:    Option<ShippingAddress>,
     /// Shipping method.
-    pub shipping_method: ShippingMethod,
+    pub shipping_method:    ShippingMethod,
     /// Order totals.
-    pub totals: OrderTotals,
+    pub totals:             OrderTotals,
     /// Currency.
-    pub currency: Currency,
+    pub currency:           Currency,
     /// Payment transactions.
-    pub transactions: Vec<PaymentTransaction>,
+    pub transactions:       Vec<PaymentTransaction>,
     /// Payment invoice ID (from payment plugin).
     pub payment_invoice_id: Option<String>,
     /// Blockchain transaction ID (for settlement).
-    pub blockchain_tx_id: Option<[u8; 32]>,
+    pub blockchain_tx_id:   Option<[u8; 32]>,
     /// Shipments.
-    pub shipments: Vec<Shipment>,
+    pub shipments:          Vec<Shipment>,
     /// Order notes.
-    pub notes: Vec<OrderNote>,
+    pub notes:              Vec<OrderNote>,
     /// Order history.
-    pub history: Vec<OrderHistoryEvent>,
+    pub history:            Vec<OrderHistoryEvent>,
     /// Customer note at checkout.
-    pub customer_note: Option<String>,
+    pub customer_note:      Option<String>,
     /// IP address.
-    pub ip_address: Option<String>,
+    pub ip_address:         Option<String>,
     /// User agent.
-    pub user_agent: Option<String>,
+    pub user_agent:         Option<String>,
     /// Source channel.
-    pub source: OrderSource,
+    pub source:             OrderSource,
     /// Tags.
-    pub tags: Vec<String>,
+    pub tags:               Vec<String>,
     /// Creation timestamp.
-    pub created_at: u64,
+    pub created_at:         u64,
     /// Last update timestamp.
-    pub updated_at: u64,
+    pub updated_at:         u64,
 }
 
 /// Order totals.
 #[derive(Debug, Clone, Default)]
 pub struct OrderTotals {
     /// Subtotal.
-    pub subtotal: u64,
+    pub subtotal:        u64,
     /// Total discounts.
-    pub discount_total: u64,
+    pub discount_total:  u64,
     /// Shipping total.
-    pub shipping_total: u64,
+    pub shipping_total:  u64,
     /// Tax total.
-    pub tax_total: u64,
+    pub tax_total:       u64,
     /// Grand total.
-    pub grand_total: u64,
+    pub grand_total:     u64,
     /// Amount paid.
-    pub amount_paid: u64,
+    pub amount_paid:     u64,
     /// Amount refunded.
     pub amount_refunded: u64,
     /// Amount due.
-    pub amount_due: u64,
+    pub amount_due:      u64,
 }
 
 impl OrderTotals {
@@ -93,14 +97,14 @@ impl OrderTotals {
     #[must_use]
     pub fn from_cart_totals(totals: &crate::implementation::cart_system::CartTotals) -> Self {
         Self {
-            subtotal: totals.subtotal,
-            discount_total: totals.discount_total,
-            shipping_total: totals.shipping_total,
-            tax_total: totals.tax_total,
-            grand_total: totals.grand_total,
-            amount_paid: 0,
+            subtotal:        totals.subtotal,
+            discount_total:  totals.discount_total,
+            shipping_total:  totals.shipping_total,
+            tax_total:       totals.tax_total,
+            grand_total:     totals.grand_total,
+            amount_paid:     0,
             amount_refunded: 0,
-            amount_due: totals.grand_total,
+            amount_due:      totals.grand_total,
         }
     }
 }
